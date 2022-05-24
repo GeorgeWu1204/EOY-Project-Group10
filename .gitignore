@@ -1,3 +1,5 @@
 *.pdf
-Doc/
+Doc
 *.log
+*.vsdx
+*.docx
