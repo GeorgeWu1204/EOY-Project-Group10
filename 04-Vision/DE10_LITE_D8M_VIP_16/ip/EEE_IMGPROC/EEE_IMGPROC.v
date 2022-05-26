@@ -120,11 +120,11 @@ reg [7:0] can_input11, can_input12, can_input13;
 reg [7:0] can_input21, can_input22, can_input23;
 reg [7:0] can_input31, can_input32, can_input33;
 
-reg [7:0] smooth_red, smooth_green, smooth_blue;
 
-wire [14:0] L_r, L_g, L_b; 
-wire [7:0] L;
-// Luminance = 0.3R + 0.59G + 0.11B 
+//////////////////////////////////////////////////////////
+//Guassian Filter
+//////////////////////////////////////////////////////////
+reg [7:0] smooth_red, smooth_green, smooth_blue;
 always @(*) begin
 
 	if (x < 2) begin
@@ -169,133 +169,197 @@ always @(*) begin
 
 	end 
 end
+///////////////////////////////////////////////////
+// 1D Edge Detection
+//////////////////////////////////////////////////
 
-assign L_r = 39 * red;
-assign L_g = 75 * green;
-assign L_b = 14 * blue;
+wire [14:0] L_r, L_g, L_b; 
+wire [7:0] L;
+// Luminance = 0.3R + 0.59G + 0.11B 
+assign L_r = 39 * smooth_red;
+assign L_g = 75 * smooth_green;
+assign L_b = 14 * smooth_blue;
 assign L = L_r[14:7] + L_g[14:7] + L_b[14:7];
 
+reg [7:0] L_1, L_2, L_3, L_4, L_5;
+//wire [15:0] tmp_l_1, tmp_l_2, tmp_l_3, tmp_l_4, tmp_l_5;
+reg signed [8:0] h_edge; 
+reg h_edge_detected_1, h_edge_detected_2, h_edge_detected_3;
+wire h_edge_detected_final;
+wire [7:0] h_edge_detected_final_shifted;
+reg h_edge_detected;
 
-//edge detection 1D
-// reg [7:0] L_1, L_2, L_3, L_4, L_5;
-// wire [15:0] tmp_l_1, tmp_l_2, tmp_l_3, tmp_l_4, tmp_l_5;
-// logic [7:0] h_edge;
+always @(posedge clk) begin
+	L_1 <= L;
+	L_2 <= L_1;
+	L_3 <= L_2;
+	L_4 <= L_3;
+	L_5 <= L_4;
+	h_edge_detected_1 <= h_edge_detected;
+    h_edge_detected_2 <= h_edge_detected_1;
+	h_edge_detected_3 <= h_edge_detected_2;	
+end
+
+assign h_edge_detected_final_shifted = h_edge_detected_final ? 8'hfa : 8'h0;
+
+// always @(posedge clk)begin
+
+assign	h_edge_detected_final = (h_edge_detected_1 && h_edge_detected_2 && h_edge_detected_3);
+//end
+// Luminance 1 2 3 4 5 
+//RGB        1 2 3 4 5
+
+always @(*) begin
+	if (x < 5) begin
+		h_edge = 0;
+	end 
+	if (x > IMAGE_W-11'h5) begin
+		h_edge = 0;
+	end 
+	else begin
+		h_edge = L_5 + L_4 - L_2 - L_1;
+	end
+	//assign h_edge_detected = (h_edge[8]==0)? h_edge > 0.5 : (-1 * h_edge) > 0.5;
+	if (h_edge[8] == 0) begin
+		if (h_edge > 5) begin
+			h_edge_detected = 1;
+
+		end
+		else begin
+			h_edge_detected = 0;
+		end
+	end
+	if (h_edge[8] == 1) begin
+		if (h_edge < -5) begin
+			h_edge_detected = 1;
+
+		end
+		else begin
+			h_edge_detected = 0;
+		end
+	end
+end
+
+
 
 // always @(posedge clk) begin
-// 	L_1 <= L;
-// 	L_2 <= L_1;
-// 	L_3 <= L_2;
-// 	L_4 <= L_3;
-// 	L_5 <= L_4;
+// 	if(sop & in_valid) begin 
+// 		x_min_o <= IMAGE_W-11'h1;
+// 		x_max_o <= 0;
+// 		y_min_o <= IMAGE_H-11'h1;
+// 		y_max_o <= 0;
+// 	end
+
+// 	if(x >= 1 && x <= N-1 && y >=1) begin
+// 		if(final_g_x) begin
+// 				if (x < x_min_o) x_min_o <= x;
+// 				if (x > x_max_o) x_max_o <= x;		
+// 		end 
+// 		else if(g_angle == 0 && g_strength > 150) begin
+// 				if (y-2 < y_min_o) y_min_o <= y-2;
+// 				if (y-2 > y_max_o) y_max_o <= y-2;
+// 		end
+// 	end 
 // end
 
+///////////////////////////////////////////////////////////////////////
+//sobel filter (Canny)
+///////////////////////////////////////////////////////////////////////
+
+// reg valid_filtered;
+// parameter N = IMAGE_W;	//Image columns
+// parameter M = IMAGE_H;	//Image rows
+// parameter K = 3; 	//Kernel size
 // always @(*) begin
-// 	if (x < 2) begin
-// 		h_edge = L;
+	
+// 	if( 1 < x < IMAGE_W - 1)begin
+// 		valid_filtered = 1;
+// 		can_input11 = L_Storage[3][x - 1];
+// 		can_input12 = L_Storage[3][ x ];
+// 		can_input13 = L_Storage[3][x + 1];
+// 		can_input21 = L_Storage[2][x - 1];
+// 		can_input22 = L_Storage[2][ x ];
+// 		can_input23 = L_Storage[2][x + 1];
+// 		can_input31 = L_Storage[1][x - 1];
+// 		can_input32 = L_Storage[1][ x ];
+// 		can_input33 = L_Storage[1][ x + 1 ];
+// 	end
+// 	else if ( x < 1 || x > 1) begin
+// 		valid_filtered = 0;
 // 	end 
-// 	if (x > IMAGE_W-11'h2) begin
-// 		h_edge = L_5;
-// 	end 
+// 	else if(x > K*N && x < (IMAGE_W*IMAGE_H)+1) begin
+// 			if((x == 1 ||x == N-1 )) begin
+// 				valid_filtered = 0;
+// 			end else valid_filtered = 1;
+// 	end
 // 	else begin
-// 		h_edge = L_5 + L_4 - L_2 - L_1;
+// 			valid_filtered = 0;
 // 	end
 // end 
 
-
-//sobel filter (Canny)
-
-reg valid_filtered;
-parameter N = IMAGE_W;	//Image columns
-parameter M = IMAGE_H;	//Image rows
-parameter K = 3; 	//Kernel size
-always @(*) begin
-	
-	if( 1 < x < IMAGE_W - 1)begin
-		valid_filtered = 1;
-		can_input11 = L_Storage[3][x - 1];
-		can_input12 = L_Storage[3][ x ];
-		can_input13 = L_Storage[3][x + 1];
-		can_input21 = L_Storage[2][x - 1];
-		can_input22 = L_Storage[2][ x ];
-		can_input23 = L_Storage[2][x + 1];
-		can_input31 = L_Storage[1][x - 1];
-		can_input32 = L_Storage[1][ x ];
-		can_input33 = L_Storage[1][ x + 1 ];
-	end
-	else if ( x < 1 || x > 1) begin
-		valid_filtered = 0;
-	end 
-	else if(x > K*N && x < (IMAGE_W*IMAGE_H)+1) begin
-			if((x == 1 ||x == N-1 )) begin
-				valid_filtered = 0;
-			end else valid_filtered = 1;
-	end
-	else begin
-			valid_filtered = 0;
-	end
-end 
-
-wire [7:0] g_strength, g_angle;
+// wire [7:0] g_strength, g_angle;
 
 
-canny cy(
-		.row1_1_input(can_input11), .row1_2_input(can_input12), .row1_3_input(can_input13),
-        .row2_1_input(can_input21), .row2_2_input(can_input22), .row2_3_input(can_input23),
-        .row3_1_input(can_input31), .row3_2_input(can_input32), .row3_3_input(can_input33),
-        .gradient_strength(g_strength), .gradient_angle(g_angle)
-		); 
-wire g_x,g_y,final_g_x;
-assign g_x = (g_strength > 150 && g_angle == 90);	
+// canny cy(
+// 		.row1_1_input(can_input11), .row1_2_input(can_input12), .row1_3_input(can_input13),
+//         .row2_1_input(can_input21), .row2_2_input(can_input22), .row2_3_input(can_input23),
+//         .row3_1_input(can_input31), .row3_2_input(can_input32), .row3_3_input(can_input33),
+//         .gradient_strength(g_strength), .gradient_angle(g_angle)
+// 		); 
+// wire g_x,g_y,final_g_x;
+// assign g_x = (g_strength > 150 && g_angle == 90);	
 //assign g_y = (g_strength > 150 && g_angle == 0);
 
-reg g_strength_x_1, g_strength_x_2, g_strength_x_3;
+// reg g_strength_x_1, g_strength_x_2, g_strength_x_3;
 //reg g_strength_y_1, g_strength_y_2, g_strength_y_3;
 
-always@(*) begin
-	g_strength_x_1 <= g_x;
-	g_strength_x_2 <= g_strength_x_1;
-	g_strength_x_3 <= g_strength_x_2;
+// always@(*) begin
+// 	g_strength_x_1 <= g_x;
+// 	g_strength_x_2 <= g_strength_x_1;
+// 	g_strength_x_3 <= g_strength_x_2;
 
 	// g_strength_y_1 <= g_y;
 	// g_strength_y_2 <= g_strength_y_1;
 	// g_strength_y_3 <= g_strength_y_2;
-end
+//end
 
-assign final_g_x = g_strength_x_1 && g_strength_x_2 && g_strength_x_3;
+
+
+//assign final_g_x = g_strength_x_1 && g_strength_x_2 && g_strength_x_3;
 
 //assign final_g_y = g_strength_y_1 && g_strength_y_2 && g_strength_y_3;
 
-always @(posedge clk) begin
-	if(sop & in_valid) begin 
-		x_min_o <= IMAGE_W-11'h1;
-		x_max_o <= 0;
-		y_min_o <= IMAGE_H-11'h1;
-		y_max_o <= 0;
-	end
+// always @(posedge clk) begin
+// 	if(sop & in_valid) begin 
+// 		x_min_o <= IMAGE_W-11'h1;
+// 		x_max_o <= 0;
+// 		y_min_o <= IMAGE_H-11'h1;
+// 		y_max_o <= 0;
+// 	end
 
-	if(x >= 1 && x <= N-1 && y >=1) begin
-		if(final_g_x) begin
-				if (x < x_min_o) x_min_o <= x;
-				if (x > x_max_o) x_max_o <= x;		
-		end 
-		else if(g_angle == 0 && g_strength > 150) begin
-				if (y-2 < y_min_o) y_min_o <= y-2;
-				if (y-2 > y_max_o) y_max_o <= y-2;
-		end
-	end 
-end
+// 	if(x >= 1 && x <= N-1 && y >=1) begin
+// 		if(final_g_x) begin
+// 				if (x < x_min_o) x_min_o <= x;
+// 				if (x > x_max_o) x_max_o <= x;		
+// 		end 
+// 		else if(g_angle == 0 && g_strength > 150) begin
+// 				if (y-2 < y_min_o) y_min_o <= y-2;
+// 				if (y-2 > y_max_o) y_max_o <= y-2;
+// 		end
+// 	end 
+// end
 
 //luminance buffer
 
-reg [7:0] L_Storage [0:3][0:IMAGE_W - 1];
-integer  i;
-always @(posedge clk) begin
-	//fill L_Storage[0]
-	L_Storage[0][0] <= L;
-	for (i = 0; i < IMAGE_W - 1 ; i = i+1) begin
-		L_Storage[0][i + 1] <= L_Storage[0][i];
-	end
-end
+// reg [7:0] L_Storage [0:3][0:IMAGE_W - 1];
+// integer  i;
+// always @(posedge clk) begin
+// 	//fill L_Storage[0]
+// 	L_Storage[0][0] <= L;
+// 	for (i = 0; i < IMAGE_W - 1 ; i = i+1) begin
+// 		L_Storage[0][i + 1] <= L_Storage[0][i];
+// 	end
+// end
 
 
 
@@ -391,79 +455,79 @@ end
 // 1 green max
 // 2 blue max
 // 4 error
-reg red_detected_1,red_detected_2,red_detected_3, red_detected_4, red_detected_5, red_detected_6;
-reg pink_detected_1,pink_detected_2,pink_detected_3, pink_detected_4, pink_detected_5, pink_detected_6;
-reg green_detected_1,green_detected_2,green_detected_3, green_detected_4, green_detected_5, green_detected_6;
-reg orange_detected_1, orange_detected_2, orange_detected_3, orange_detected_4, orange_detected_5, orange_detected_6;
+reg red_detected_1,red_detected_2,red_detected_3; //red_detected_4, red_detected_5, red_detected_6;
+reg pink_detected_1,pink_detected_2,pink_detected_3; //pink_detected_4, pink_detected_5, pink_detected_6;
+reg green_detected_1,green_detected_2,green_detected_3; // green_detected_4, green_detected_5, green_detected_6;
+reg orange_detected_1, orange_detected_2, orange_detected_3; // orange_detected_4, orange_detected_5, orange_detected_6;
 
 
 initial begin
 	red_detected_1 = 0;
 	red_detected_2 = 0;
 	red_detected_3 = 0;
-	red_detected_4 = 0;
-	red_detected_5 = 0;
-	red_detected_6 = 0;
+	// red_detected_4 = 0;
+	// red_detected_5 = 0;
+	// red_detected_6 = 0;
 	
 	pink_detected_1 = 0;
 	pink_detected_2 = 0;
 	pink_detected_3 = 0;
-	pink_detected_4 = 0;
-	pink_detected_5 = 0;
-	pink_detected_6 = 0;
+	// pink_detected_4 = 0;
+	// pink_detected_5 = 0;
+	// pink_detected_6 = 0;
 
 	green_detected_1 = 0;
 	green_detected_2 = 0;
 	green_detected_3 = 0;
-	green_detected_4 = 0;
-	green_detected_5 = 0;
-	green_detected_6 = 0;
+	// green_detected_4 = 0;
+	// green_detected_5 = 0;
+	// green_detected_6 = 0;
 
 	
 	orange_detected_1 = 0;
 	orange_detected_2 = 0;
 	orange_detected_3 = 0;
-	orange_detected_4 = 0;
-	orange_detected_5 = 0;
-	orange_detected_6 = 0;
+	// orange_detected_4 = 0;
+	// orange_detected_5 = 0;
+	// orange_detected_6 = 0;
 
 end
 always @(posedge clk)begin
 	red_detected_1 <= red_detected;
 	red_detected_2 <= red_detected_1;
 	red_detected_3 <= red_detected_2;
-	red_detected_4 <= red_detected_3;
-	red_detected_5 <= red_detected_4;
-	red_detected_6 <= red_detected_5;
+	// red_detected_4 <= red_detected_3;
+	// red_detected_5 <= red_detected_4;
+	// red_detected_6 <= red_detected_5;
 	
 	pink_detected_1 <= pink_detected;
 	pink_detected_2 <= pink_detected_1;
 	pink_detected_3 <= pink_detected_2;
-	pink_detected_4 <= pink_detected_3;
-	pink_detected_5 <= pink_detected_4;
-	pink_detected_6 <= pink_detected_5;
+	// pink_detected_4 <= pink_detected_3;
+	// pink_detected_5 <= pink_detected_4;
+	// pink_detected_6 <= pink_detected_5;
 	
 	green_detected_1 <= green_detected;
 	green_detected_2 <= green_detected_1;
 	green_detected_3 <= green_detected_2;
-	green_detected_4 <= green_detected_3;
-	green_detected_5 <= green_detected_4;
-	green_detected_6 <= green_detected_5;
+	// green_detected_4 <= green_detected_3;
+	// green_detected_5 <= green_detected_4;
+	// green_detected_6 <= green_detected_5;
 	
 	orange_detected_1 <= orange_detected;
 	orange_detected_2 <= orange_detected_1;
 	orange_detected_3 <= orange_detected_2;
-	orange_detected_4 <= orange_detected_3;
-	orange_detected_5 <= orange_detected_4;
-	orange_detected_6 <= orange_detected_5;
+	// orange_detected_4 <= orange_detected_3;
+	// orange_detected_5 <= orange_detected_4;
+	// orange_detected_6 <= orange_detected_5;
 
 end
 
 wire red_final_detected, pink_final_detected, green_final_detected, orange_final_detected;
-assign red_final_detected = red_detected_1 && red_detected_2 && red_detected_3 && red_detected_4 && red_detected_5 && red_detected_6;
-assign pink_final_detected = pink_detected_1 && pink_detected_2 && pink_detected_3 && pink_detected_4 && pink_detected_5 && pink_detected_6;
-assign green_final_detected = green_detected_1 && green_detected_2 && green_detected_3 && green_detected_4 && green_detected_5 && green_detected_6;
-assign orange_final_detected = orange_detected_1 && orange_detected_2 && orange_detected_3 && orange_detected_4 && orange_detected_5 && orange_detected_6;
+assign red_final_detected = red_detected_1 && red_detected_2 && red_detected_3; //&& red_detected_4 && red_detected_5 && red_detected_6;
+assign pink_final_detected = pink_detected_1 && pink_detected_2 && pink_detected_3; //&& pink_detected_4 && pink_detected_5 && pink_detected_6;
+assign green_final_detected = green_detected_1 && green_detected_2 && green_detected_3; //&& green_detected_4 && green_detected_5 && green_detected_6;
+assign orange_final_detected = orange_detected_1 && orange_detected_2 && orange_detected_3; //&& orange_detected_4 && orange_detected_5 && orange_detected_6;
 
 assign red_detected =   (hue >= 340 || hue <= 22)&&( saturation >= 178 && saturation <= 230) &&(luminosity >= 70 && luminosity <= 170) ||
 					    (hue >= 5 && hue <= 22) && (saturation >= 191 && saturation <= 230)  && (luminosity >= 70 && luminosity <= 153);
@@ -473,7 +537,8 @@ assign red_detected =   (hue >= 340 || hue <= 22)&&( saturation >= 178 && satura
 
 assign pink_detected  = (hue >= 270 && hue <= 320) && (saturation >= 102 && saturation <= 255)  && (saturation >= 179 && saturation <= 204) ||
 						(hue >= 335 || hue <= 10) && (saturation > 75) && (saturation > 51)||
-						(hue >= 335 || hue <= 10)  && (saturation >= 153 && saturation <= 255)  && (luminosity >= 179 && luminosity <= 204);
+						(hue >= 335 || hue <= 10)  && (saturation >= 153 && saturation <= 255)  && (luminosity >= 179 && luminosity <= 204) ||
+						(hue >= 335 || hue <= 10) && (saturation >= 100);
 
 assign green_detected =
 						(hue >= 150 && hue <= 180) && (saturation >= 100 && saturation <= 179) && (luminosity >= 51 && luminosity <= 120) ||
@@ -518,23 +583,28 @@ assign color_high  =  (red_final_detected) ? {8'hff, 8'h0, 8'h0} :
 // Show bounding box
 
 wire [23:0] new_image;
-wire bb_active_r, bb_active_g, bb_active_p, bb_active_o;
+wire bb_active_r, bb_active_g, bb_active_p, bb_active_o, bb_active_edge;
 
 reg [10:0] left_r, left_p, left_g, left_o;
 reg [10:0] right_r, right_p, right_g, right_o;
 reg [10:0] top_r, top_p, top_g, top_o;
 reg [10:0] bottom_r, bottom_p, bottom_g, bottom_o;
+//reg [10:0] left_edge, right_edge, top_edge, bottom_edge;
 
 assign bb_active_r = (x == left_r && left_r != IMAGE_W-11'h1) || (x == right_r && right_r != 0) || (y == top_r && top_r != IMAGE_H-11'h1) || (y == bottom_r && bottom_r != 0);
 assign bb_active_p = (x == left_p && left_p != IMAGE_W-11'h1) || (x == right_p && right_p != 0) || (y == top_p && top_p != IMAGE_H-11'h1) || (y == bottom_p && bottom_p != 0);
 assign bb_active_g = (x == left_g && left_g != IMAGE_W-11'h1) || (x == right_g && right_g != 0) || (y == top_g && top_g != IMAGE_H-11'h1) || (y == bottom_g && bottom_g != 0);
 assign bb_active_o = (x == left_o && left_o != IMAGE_W-11'h1) || (x == right_o && right_o != 0) || (y == top_o && top_o != IMAGE_H-11'h1) || (y == bottom_o && bottom_o != 0);
+//assign bb_active_edge = (x == left_edge && left_edge != IMAGE_W-11'h1) || (x == right_edge && right_edge != 0) || (y == top_edge && top_edge != IMAGE_H-11'h1) || (y == bottom_edge && bottom_edge != 0);
+
 // active r = x = left_r |  && red_detected
-assign new_image = //{h_edge,h_edge,h_edge};
-bb_active_r ? {24'hff0000} : 
-bb_active_p ? {24'h00ff00} : 
-bb_active_g ? {24'h0000ff} : 
-bb_active_o ? {24'hf0f0f0} : color_high;
+assign new_image = 
+//bb_active_edge ? {24'h00ff00} : {h_edge_detected_final_shifted,h_edge_detected_final_shifted,h_edge_detected_final_shifted};
+//{h_edge_detected_final_shifted,h_edge_detected_final_shifted,h_edge_detected_final_shifted};
+// bb_active_r ? {24'hff0000} : 
+ bb_active_p ? {24'h00ff00} : color_high; 
+// bb_active_g ? {24'h0000ff} : 
+ //bb_active_o ? {24'hf0f0f0} : color_high;
 
 
 
@@ -543,7 +613,9 @@ bb_active_o ? {24'hf0f0f0} : color_high;
 // Don't modify the start-of-packet word - it's a packet discriptor
 // Don't modify data in non-video packets
 //assign {red_out, green_out, blue_out} = red_detected? {8'hff, 8'h0, 8'h0} : {red,green,blue};
-assign {red_out, green_out, blue_out} = (mode & ~sop & packet_video) ? new_image : {red,green,blue};
+assign {red_out, green_out, blue_out} = (mode & ~sop & packet_video) ? new_image : 
+//{h_edge_detected_final_shifted, h_edge_detected_final_shifted, h_edge_detected_final_shifted};
+{red,green,blue};
 // Toggling switch SW0 switch between raw camera data and a basic red image
 //sop : start of packet 
 
@@ -562,12 +634,13 @@ always@(posedge clk) begin
 		if (x == IMAGE_W-1) begin
 			x <= 11'h0;
 			y <= y + 11'h1;
+
 			// move to upper layer
-			for (i = 0; i < IMAGE_W - 1 ; i = i+1) begin
-				L_Storage[1][i] <= L_Storage[0][i];
-				L_Storage[2][i] <= L_Storage[1][i];
-				L_Storage[3][i] <= L_Storage[2][i];
-			end
+			// for (i = 0; i < IMAGE_W - 1 ; i = i+1) begin
+			// 	L_Storage[1][i] <= L_Storage[0][i];
+			// 	L_Storage[2][i] <= L_Storage[1][i];
+			// 	L_Storage[3][i] <= L_Storage[2][i];
+			// end
 			// L_Storage[1] <= L_Storage [0];
 			// L_Storage[2] <= L_Storage [1];
 			// L_Storage[3] <= L_Storage [2];
@@ -588,6 +661,9 @@ reg [10:0] x_min_r, x_min_p, x_min_g, x_min_o;
 reg [10:0] y_min_r, y_min_p, y_min_g, y_min_o;
 reg [10:0] x_max_r, x_max_p, x_max_g, x_max_o;
 reg [10:0] y_max_r, y_max_p, y_max_g, y_max_o;
+
+reg [10:0] edge_x_min, edge_x_max, edge_y_min, edge_y_max;
+
 always@(posedge clk) begin
 	if (red_final_detected & in_valid) begin	//Update bounds when the pixel is red
 		if (x < x_min_r) x_min_r <= x;
@@ -603,18 +679,25 @@ always@(posedge clk) begin
 		if (y > y_max_g) y_max_g <= y;
 	end
 
-	else if (pink_detected & pink_final_detected & in_valid) begin	//Update bounds when the pixel is red
+	else if (pink_detected & pink_final_detected & h_edge_detected_final & in_valid) begin	//Update bounds when the pixel is red
 		if (x < x_min_p) x_min_p <= x;
 		if (x > x_max_p) x_max_p <= x;
 		if (y < y_min_p) y_min_p <= y;
 		if (y > y_max_p) y_max_p <= y;
 	end
 	
-	// else if (orange_detected & orange_final_detected &in_valid) begin	//Update bounds when the pixel is red
-	// 	if (x < x_min_o) x_min_o <= x;
-	// 	if (x > x_max_o) x_max_o <= x;
-	// 	if (y < y_min_o) y_min_o <= y;
-	// 	if (y > y_max_o) y_max_o <= y;
+	else if (orange_detected & orange_final_detected & h_edge_detected_final & in_valid) begin	//Update bounds when the pixel is red
+		if (x < x_min_o) x_min_o <= x;
+		if (x > x_max_o) x_max_o <= x;
+		if (y < y_min_o) y_min_o <= y;
+		if (y > y_max_o) y_max_o <= y;
+	end
+
+	// else if (h_edge_detected_final & in_valid) begin
+	// 	if (x < edge_x_min) edge_x_min <= x;
+	// 	if (x > edge_x_max) edge_x_max <= x;
+	// 	if (y < edge_y_min) edge_y_min <= y;
+	// 	if (y > edge_y_max) edge_y_max <= y;
 	// end
 	
 	if (sop & in_valid) begin	//Reset bounds on start of packet
@@ -626,14 +709,18 @@ always@(posedge clk) begin
 		x_max_g <= 0;
 		y_min_g <= IMAGE_H-11'h1;
 		y_max_g <= 0;
-		// x_min_o <= IMAGE_W-11'h1;
-		// x_max_o <= 0;
-		// y_min_o <= IMAGE_H-11'h1;
-		// y_max_o <= 0;
+		x_min_o <= IMAGE_W-11'h1;
+		x_max_o <= 0;
+		y_min_o <= IMAGE_H-11'h1;
+		y_max_o <= 0;
 		x_min_p <= IMAGE_W-11'h1;
 		x_max_p <= 0;
 		y_min_p <= IMAGE_H-11'h1;
 		y_max_p <= 0;
+		// edge_x_min <= IMAGE_W-11'h1;
+		// edge_x_max <= 0;
+		// edge_y_min <= IMAGE_H-11'h1;
+		// edge_y_max <= 0;
 	end
 	//parameter IMAGE_W = 11'd640; IMAGE_H = 11'd480;
 end
@@ -671,6 +758,7 @@ always@(posedge clk) begin
 			top_o <= y_min_o;
 			bottom_o <= y_max_o;
 		//end
+
 		
 		//window for last frame, frame is refreshed every eop
 		
