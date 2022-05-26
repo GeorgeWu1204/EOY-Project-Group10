@@ -49,51 +49,56 @@
 
 #define ADNS3080_PRODUCT_ID_VAL        0x17
 
-// define motor driver pins
+// define motor driver pins ----------------------------------------------------------------------
+// motor 1 settings
 
 #define CHA 0
-#define ENA 2 // this pin must be PWM enabled pin if Arduino board is used
-#define IN1 13
-#define IN2 14
+#define ENA 2   // PWMA
+#define IN1 13  // AIN1
+#define IN2 14  // AIN2
+
 // motor 2 settings
-#define IN3 12
-#define IN4 16
-#define ENB 4// this pin must be PWM enabled pin if Arduino board is used
-#define CHB 1
+
+#define IN3 12  // BIN1 
+#define IN4 16  // BIN2
+#define ENB 4   // PWMB
+#define CHB 1   
 const int CCW = 2; // do not change
 const int CW  = 1; // do not change
 #define motor1 1 // do not change
 #define motor2 2 // do not change
 
-// initialise distance
+// initialise distance -------------------------------------------------------------------------
 
-int total_x = 0;
-int total_y = 0;
+float total_x = 0;          // changed to float
+float total_y = 0;
 
-int total_x1 = 0;
-int total_y1 = 0;
+float total_x1 = 0;
+float total_y1 = 0;
 
-int x=0;
-int y=0;
+float x=0;
+float y=0;
 
-int a=0;
-int b=0;
+float a=0;
+float b=0;
 
-int distance_x=0;
-int distance_y=0;
+float distance_x=0;
+float distance_y=0;
 
 volatile byte movementflag=0;
 volatile int xydat[2];
+
+// initialize dc motor
 
 Robojax_L298N_DC_motor robot(IN1, IN2, ENA, CHA,  IN3, IN4, ENB, CHB);
 // uncomment following line for two motors with debug information
 //Robojax_L298N_DC_motor robot(IN1, IN2, ENA, CHA, IN3, IN4, ENB, CHB, true);
 
 
-// optical flow functions
+// optical flow functions ----------------------------------------------------------------------
 
 int convTwosComp(int b){
-  //Convert from 2's complement
+
   if(b & 0x80){
     b = -1 * ((b ^ 0xff) + 1);
     }
@@ -150,7 +155,7 @@ int mousecam_read_reg(int reg)
 struct MD
 {
  byte motion;
- char dx, dy;
+ char dx, dy;       // changed to float
  byte squal;
  word shutter;
  byte max_pix;
@@ -220,21 +225,26 @@ int mousecam_frame_capture(byte *pdata)
   return ret;
 }
 
-// sensor data
+// sensor data --------------------------------------------------------------------------
 
-void surface_quality(int sq,){
+void surface_quality(int &sq){
 
   for(int i=0; i<md.squal/4; i++){
     sq++;
   }
+  Serial.print("-----------------------------------------------------------------------");
+  Serial.print('\n');
   Serial.print("Surface quality ="+ string(surface_quality));
 }
 
-void avg_pixel_value_n_shutter(int val, MD md){
+void avg_pixel_value_n_shutter(int &val, MD &md){
 
+  Serial.print("Average pixel value :");
   Serial.print(' ');
   Serial.print((val*100)/351);
   Serial.print(' ');
+  Serial.print('\n');
+  Serial.print("Shutter :");
   Serial.print(md.shutter); Serial.print(" (");
   Serial.print((int)md.dx); Serial.print(',');
   Serial.print((int)md.dy); Serial.println(')');
@@ -242,20 +252,23 @@ void avg_pixel_value_n_shutter(int val, MD md){
   // Serial.println(md.max_pix);
 }
   
-void distance(MD md){
+void distance(MD &md){
+
   delay(100);
-    distance_x = md.dx; //convTwosComp(md.dx);
-    distance_y = md.dy; //convTwosComp(md.dy);
+    distance_x = convTwosComp(md.dx);
+    distance_y = convTwosComp(md.dy);
 
   total_x1 = total_x1 + distance_x;
   total_y1 = total_y1 + distance_y;
 
-  total_x = total_x1/157;
-  total_y = total_y1/157;
+  total_x = total_x1/2.638;
+  total_y = total_y1/2.638;
+
+  Serial.print('\n');
 }
 
 
-// setup code
+// setup code ---------------------------------------------------------------------------
 
 void setup()
 {
@@ -287,6 +300,8 @@ char asciiart(int k)
 }*/
 
 byte frame[ADNS3080_PIXELS_X * ADNS3080_PIXELS_Y];
+
+// run code ----------------------------------------------------------------------------
 
 void loop()
 {
@@ -321,54 +336,26 @@ void loop()
 
   #else
 
-  // if enabled this section produces a bar graph of the surface quality that can be used to focus the camera
-  // also drawn is the average pixel value 0-63 and the shutter speed and the motion dx,dy.
-
   int val = mousecam_read_reg(ADNS3080_PIXEL_SUM);
   MD md;
-  mousecam_read_motion(&md);
-
-  int surface_quality = 0; 
-  for(int i=0; i<md.squal/4; i++){
-    surface_quality++;
-  }
-  Serial.print("Surface quality ="+ string(surface_quality));
+  int sq = 0; 
   
-  Serial.print(' ');
-  Serial.print((val*100)/351);
-  Serial.print(' ');
-  Serial.print(md.shutter); Serial.print(" (");
-  Serial.print((int)md.dx); Serial.print(',');
-  Serial.print((int)md.dy); Serial.println(')');
+  mousecam_read_motion(&md);
+  surface_quality(sq);
+  avg_pixel_value_n_shutter(val, md);
+  distance(md);
+  
 
-  // Serial.println(md.max_pix);
-  delay(100);
-    distance_x = md.dx; //convTwosComp(md.dx);
-    distance_y = md.dy; //convTwosComp(md.dy);
+    if (total_y == 10){
+        robot.brake(1);
+        robot.brake(2);
+    }
+    else {
+        robot.rotate(motor1, 100, CW);
+        robot.rotate(motor2, 100, CCW);
+    }
 
-total_x1 = total_x1 + distance_x;
-total_y1 = total_y1 + distance_y;
-
-total_x = total_x1/157;
-total_y = total_y1/157;
-
-while (total_x != 10){
-  robot.rotate(motor1, 100, CW);//run motor1 at 60% speed in CW direction
-  robot.rotate(motor2, 100, CW);//run motor1 at 60% speed in CW direction
-}
-
-
-Serial.print('\n');
-
-
-Serial.println("Distance_x = " + String(total_x));
-
-Serial.println("Distance_y = " + String(total_y));
-Serial.print('\n');
-
-  delay(250);
+  delay(1);
 
   #endif
 }
-
-void loop
