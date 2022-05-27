@@ -50,14 +50,14 @@
 #define ADNS3080_PRODUCT_ID_VAL        0x17
 
 // define motor driver pins ----------------------------------------------------------------------
-// motor 1 settings
+// motor 1 settings (LEFT)
 
 #define CHA 0
 #define ENA 17   // PWMA
 #define IN1 14  // AIN1
 #define IN2 16  // AIN2
 
-// motor 2 settings
+// motor 2 settings (RIGHT)
 
 #define IN3 4  // BIN1 
 #define IN4 15  // BIN2
@@ -174,8 +174,8 @@ byte frame[ADNS3080_PIXELS_X * ADNS3080_PIXELS_Y];
 
 void loop()
 {
-    if (loopstart)
-    {
+    //if (loopstart)
+    //{
         #if 0
 
     int tdistance = 0;
@@ -208,8 +208,6 @@ void loop()
     delay(250);
 
     #else
-
-
     
     int val = mousecam_read_reg(ADNS3080_PIXEL_SUM);
     MD md;
@@ -222,39 +220,51 @@ void loop()
 
     // motor going straight
     
-    int speed = 0;
+    int speed_a = 70;
+    int speed_b = 70;
 
-        if (total_y == 10){
+    if (total_y > 1000)
+    {
+      robot.brake(1);
+      robot.brake(2);
+    }
+    else{
+      speed_a = speed_a + 1*total_x;
+      speed_b = speed_b - 1*total_x;
+      robot.rotate(motor1, speed_a, CW);
+      robot.rotate(motor2, speed_b, CCW);
+    }
+
+        /*if (total_y == 100){
             robot.brake(1);
             robot.brake(2);
         }
         else {
-            if (total_x > 0.5)
-            {
-                robot.rotate(motor1, 50, CW);
-                robot.rotate(motor2, 50, CW);
-            }
-            else if (total_x < 0.5)
-            {
-                robot.rotate(motor1, 50, CCW);
-                robot.rotate(motor2, 50, CCW);
-            }
-            else
-            {
-                speed = 10*(10-total_y);
-                robot.rotate(motor1, speed, CW);
-                robot.rotate(motor2, speed, CCW);
-            }
-        }
+          if (total_x > 30)
+          {
+              robot.rotate(motor1, 30, CW);
+              robot.rotate(motor2, 30, CW);
+          }
+          else if (total_x < -30)
+          {
+              robot.rotate(motor1, 30, CCW);
+              robot.rotate(motor2, 30, CCW);
+          }
+          else
+          {
+              speed = 10*(100-total_y);
+              robot.rotate(motor1, speed, CW);
+              robot.rotate(motor2, speed, CCW);
+          }
+      }*/
 
-    loopstart = false;
+    //loopstart = false;
 
     delay(1);
 
     #endif
 
-    loopstart = false;
-    }
+    //}
 }
 
 
@@ -410,14 +420,17 @@ void avg_pixel_value_n_shutter(int &val, MD &md)
 void distance(MD &md)
 {
   delay(100);
-    distance_x = convTwosComp(md.dx);
-    distance_y = convTwosComp(md.dy);
+    distance_x = convTwosComp(md.dx)*0.22;
+    distance_y = convTwosComp(md.dy)*0.22;
 
   total_x1 = total_x1 + distance_x;
   total_y1 = total_y1 + distance_y;
 
-  total_x = total_x1/2.638;
-  total_y = total_y1/2.638;
+  total_x = total_x1;
+  total_y = total_y1;
+
+  Serial.println("Distance_x = " + String(total_x));
+  Serial.println("Distance_y = " + String(total_y));
 
   Serial.print('\n');
 }
