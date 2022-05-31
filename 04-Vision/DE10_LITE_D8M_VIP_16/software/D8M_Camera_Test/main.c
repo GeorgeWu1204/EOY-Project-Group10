@@ -190,12 +190,13 @@ int main()
     	alt_u16 gain = GAIN_INIT;
 
         OV8865SetExposure(exposureTime);
-        OV8865SetGain(gain);
+        OV8865SetGain(380);
+		printf("current gain is 380\n");
         Focus_Init();
 
         FILE* ser = fopen("/dev/uart_0", "rb+");
         if(ser){
-        	printf("Opened UART\n");
+        	printf("Opened \n");
         } else {
         	printf("Failed to open UART\n");
         	while (1);
