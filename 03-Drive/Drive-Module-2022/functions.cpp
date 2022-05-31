@@ -2,14 +2,14 @@
 #include "SPI.h"
 #include <Robojax_L298N_DC_motor.h>
 
-// define optical flow sensor flow
+// define optical flow sensor flow -----------------------------------------------------------------
 
 #define PIN_SS        5
 #define PIN_MISO      19
 #define PIN_MOSI      23
 #define PIN_SCK       18
 
-#define PIN_MOUSECAM_RESET     17
+#define PIN_MOUSECAM_RESET     22
 #define PIN_MOUSECAM_CS        5
 
 #define ADNS3080_PIXELS_X                 30
@@ -50,18 +50,18 @@
 #define ADNS3080_PRODUCT_ID_VAL        0x17
 
 // define motor driver pins ----------------------------------------------------------------------
-// motor 1 settings
+// motor 1 settings (LEFT)
 
 #define CHA 0
-#define ENA 2   // PWMA
-#define IN1 13  // AIN1
-#define IN2 14  // AIN2
+#define ENA 17   // PWMA
+#define IN1 14  // AIN1
+#define IN2 16  // AIN2
 
-// motor 2 settings
+// motor 2 settings (RIGHT)
 
-#define IN3 12  // BIN1 
-#define IN4 16  // BIN2
-#define ENB 4   // PWMB
+#define IN3 4  // BIN1 
+#define IN4 15  // BIN2
+#define ENB 2   // PWMB
 #define CHB 1   
 const int CCW = 2; // do not change
 const int CW  = 1; // do not change
@@ -76,17 +76,37 @@ float total_y = 0;
 float total_x1 = 0;
 float total_y1 = 0;
 
-float x=0;
+/*float x=0;
 float y=0;
 
 float a=0;
-float b=0;
+float b=0;*/
 
 float distance_x=0;
 float distance_y=0;
 
 volatile byte movementflag=0;
 volatile int xydat[2];
+
+// initialize timer -----------------------------------------------------------------------------
+
+hw_timer_t * timer = NULL;
+
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+
+bool loopstart=false;
+
+void ARDUINO_ISR_ATTR onTimer() {
+  // Increment the counter and set the time of ISR
+  portENTER_CRITICAL_ISR(&timerMux);
+
+  loopstart = true;
+
+  portEXIT_CRITICAL_ISR(&timerMux);
+  // Give a semaphore that we can check in the loop
+  // It is safe to use digitalRead/Write here if you want to toggle an output
+}
+
 
 // initialize dc motor & data struc -------------------------------------------------------------
 
@@ -154,61 +174,97 @@ byte frame[ADNS3080_PIXELS_X * ADNS3080_PIXELS_Y];
 
 void loop()
 {
- #if 0
+    //if (loopstart)
+    //{
+        #if 0
 
- int tdistance = 0;
-/*
-    if(movementflag){
+    int tdistance = 0;
+    /*
+        if(movementflag){
 
-    tdistance = tdistance + convTwosComp(xydat[0]);
-    Serial.println("Distance = " + String(tdistance));
-    movementflag=0;
-    delay(3);
-    }
+        tdistance = tdistance + convTwosComp(xydat[0]);
+        Serial.println("Distance = " + String(tdistance));
+        movementflag=0;
+        delay(3);
+        }
 
-  */
-  // if enabled this section grabs frames and outputs them as ascii art
+    */
+    // if enabled this section grabs frames and outputs them as ascii art
 
-  if(mousecam_frame_capture(frame)==0)
-  {
-    int i,j,k;
-    for(i=0, k=0; i<ADNS3080_PIXELS_Y; i++)
+    if(mousecam_frame_capture(frame)==0)
     {
-      for(j=0; j<ADNS3080_PIXELS_X; j++, k++)
-      {
-        Serial.print(asciiart(frame[k]));
-        Serial.print(' ');
-      }
-      Serial.println();
+        int i,j,k;
+        for(i=0, k=0; i<ADNS3080_PIXELS_Y; i++)
+        {
+        for(j=0; j<ADNS3080_PIXELS_X; j++, k++)
+        {
+            Serial.print(asciiart(frame[k]));
+            Serial.print(' ');
+        }
+        Serial.println();
+        }
     }
-  }
-  Serial.println();
-  delay(250);
+    Serial.println();
+    delay(250);
 
-  #else
+    #else
+    
+    int val = mousecam_read_reg(ADNS3080_PIXEL_SUM);
+    MD md;
+    int sq = 0; 
+    
+    mousecam_read_motion(&md);
+    surface_quality(sq, md);
+    avg_pixel_value_n_shutter(val, md);
+    distance(md);
 
-  int val = mousecam_read_reg(ADNS3080_PIXEL_SUM);
-  MD md;
-  int sq = 0; 
-  
-  mousecam_read_motion(&md);
-  surface_quality(sq, md);
-  avg_pixel_value_n_shutter(val, md);
-  distance(md);
-  
+    // motor going straight
+    
+    int speed_a = 70;
+    int speed_b = 70;
 
-    if (total_y == 10){
-        robot.brake(1);
-        robot.brake(2);
+    if (total_y > 1000)
+    {
+      robot.brake(1);
+      robot.brake(2);
     }
-    else {
-        robot.rotate(motor1, 100, CW);
-        robot.rotate(motor2, 100, CCW);
+    else{
+      speed_a = speed_a + 1*total_x;
+      speed_b = speed_b - 1*total_x;
+      robot.rotate(motor1, speed_a, CW);
+      robot.rotate(motor2, speed_b, CCW);
     }
 
-  delay(1);
+        /*if (total_y == 100){
+            robot.brake(1);
+            robot.brake(2);
+        }
+        else {
+          if (total_x > 30)
+          {
+              robot.rotate(motor1, 30, CW);
+              robot.rotate(motor2, 30, CW);
+          }
+          else if (total_x < -30)
+          {
+              robot.rotate(motor1, 30, CCW);
+              robot.rotate(motor2, 30, CCW);
+          }
+          else
+          {
+              speed = 10*(100-total_y);
+              robot.rotate(motor1, speed, CW);
+              robot.rotate(motor2, speed, CCW);
+          }
+      }*/
 
-  #endif
+    //loopstart = false;
+
+    delay(1);
+
+    #endif
+
+    //}
 }
 
 
@@ -364,14 +420,17 @@ void avg_pixel_value_n_shutter(int &val, MD &md)
 void distance(MD &md)
 {
   delay(100);
-    distance_x = convTwosComp(md.dx);
-    distance_y = convTwosComp(md.dy);
+    distance_x = convTwosComp(md.dx)*0.22;
+    distance_y = convTwosComp(md.dy)*0.22;
 
   total_x1 = total_x1 + distance_x;
   total_y1 = total_y1 + distance_y;
 
-  total_x = total_x1/2.638;
-  total_y = total_y1/2.638;
+  total_x = total_x1;
+  total_y = total_y1;
+
+  Serial.println("Distance_x = " + String(total_x));
+  Serial.println("Distance_y = " + String(total_y));
 
   Serial.print('\n');
 }
