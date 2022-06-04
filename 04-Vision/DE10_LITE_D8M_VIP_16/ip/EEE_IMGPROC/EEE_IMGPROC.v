@@ -29,6 +29,8 @@ module EEE_IMGPROC(
 	mode,
 	message_to_ESP32,
 	message_from_ESP32
+	// outbuffer,
+	// receive_msg
 );
 
 
@@ -43,7 +45,6 @@ input							s_write;
 output	reg	[31:0]	s_readdata;
 input	[31:0]				s_writedata;
 input	[2:0]					s_address;
-
 
 // streaming sink
 input	[23:0]            	sink_data;
@@ -61,17 +62,13 @@ output								source_eop;
 
 // conduit export
 input                         mode;
-output 	 reg		[15:0]	      message_to_ESP32;
-input 			[15:0]			  message_from_ESP32;
-
-
+output		reg		[15:0]    message_to_ESP32;
+input				[15:0]    message_from_ESP32;
 
 
 ////////////////////////////////////////////////////////////////////////
 //
 //HSV and Luminance
-
-
 
 parameter IMAGE_W = 11'd640;
 parameter IMAGE_H = 11'd480;
@@ -80,11 +77,14 @@ parameter MSG_INTERVAL = 6;
 parameter BB_COL_DEFAULT = 24'h00ff00;
 parameter horizontal_edge_region_threshold = 6'd30;
 parameter vertical_region_confirm_threshold = 6'd50;
+parameter difference_threshold = 8'd150;
+parameter count_threshold = 6'd10;
+parameter y_threshold = 6'd20;
+
 
 wire [7:0]   red, green, blue, grey;
 wire [7:0]   red_out, green_out, blue_out;
-reg [10:0] x, y;
-reg packet_video;
+
 wire         sop, eop, in_valid, out_ready;
 ////////////////////////////////////////////////////////////////////////
 wire red_detected, green_detected, pink_detected, orange_detected, black_detected;
@@ -121,7 +121,11 @@ always @(posedge clk) begin
 	Blue_stage_4 <= Blue_stage_3;
 	Blue_stage_5 <= Blue_stage_4;
 end
+// [0.006 0.061 0.242 0.383 0.242 0.061 0.006]
 
+// [0.061 0.242 0.383 0.242 0.061] 
+
+// [8/128 , 31/128 , 49/128 , 31/128 , 8/128]
 reg [14:0] tmp_r_1, tmp_r_2, tmp_r_3, tmp_r_4, tmp_r_5;
 reg [14:0] tmp_g_1, tmp_g_2, tmp_g_3, tmp_g_4, tmp_g_5;
 reg [14:0] tmp_b_1, tmp_b_2, tmp_b_3, tmp_b_4, tmp_b_5;
@@ -243,72 +247,6 @@ Median M_blue(
 );
 
 
-///////////////////////////////////////////////////
-// 1D Edge Detection
-//////////////////////////////////////////////////
-
-wire [14:0] L_r, L_g, L_b; 
-wire [7:0] L;
-// Luminance = 0.3R + 0.59G + 0.11B 
-assign L_r = 39 * median_red;
-assign L_g = 75 * median_green;
-assign L_b = 14 * median_blue;
-assign L = L_r[14:7] + L_g[14:7] + L_b[14:7];
-
-reg [7:0] L_1, L_2, L_3, L_4, L_5;
-//wire [15:0] tmp_l_1, tmp_l_2, tmp_l_3, tmp_l_4, tmp_l_5;
-reg signed [8:0] h_edge; 
-reg h_edge_detected_1, h_edge_detected_2, h_edge_detected_3;
-wire h_edge_detected_final;
-wire [7:0] h_edge_detected_final_shifted;
-reg h_edge_detected;
-
-always @(posedge clk) begin
-	L_1 <= L;
-	L_2 <= L_1;
-	L_3 <= L_2;
-	L_4 <= L_3;
-	L_5 <= L_4;
-	h_edge_detected_1 <= h_edge_detected;
-    h_edge_detected_2 <= h_edge_detected_1;
-	h_edge_detected_3 <= h_edge_detected_2;	
-end
-
-assign h_edge_detected_final_shifted = h_edge_detected_final ? 8'hfa : 8'h0;
-assign	h_edge_detected_final = (h_edge_detected_1 && h_edge_detected_2 && h_edge_detected_3);
-
-
-always @(*) begin
-	if (x < 5) begin
-		h_edge = 0;
-	end 
-	if (x > IMAGE_W - 5) begin
-		h_edge = 0;
-	end 
-	else begin
-		h_edge = L_5 + L_4 - L_2 - L_1;
-	end
-	if (h_edge[8] == 0) begin
-		if (h_edge > 150) begin
-			h_edge_detected = 1;
-
-		end
-		else begin
-			h_edge_detected = 0;
-		end
-	end
-	if (h_edge[8] == 1) begin
-		if (h_edge < -150) begin
-			h_edge_detected = 1;
-
-		end
-		else begin
-			h_edge_detected = 0;
-		end
-	end
-end
-
-
 
 ///////////////////////////////////////////////////////////////////
 //HSV Convertion
@@ -320,46 +258,12 @@ assign hue = (red == green && red == blue) ? 0 :((value != red)? (value != green
                 ((120*(value-min)+60*(blue - red))/(value - min)>>1): 
                 (blue < green) ? ((60*(green - blue)/(value - min))>>1): (((360*(value-min) +(60*(green - blue)))/(value - min))>>1));
 
+
 reg red_detected_1,red_detected_2,red_detected_3 ,red_detected_4, red_detected_5, red_detected_6;
 reg pink_detected_1,pink_detected_2,pink_detected_3 ,pink_detected_4, pink_detected_5, pink_detected_6;
 reg green_detected_1,green_detected_2,green_detected_3, green_detected_4, green_detected_5, green_detected_6;
 reg orange_detected_1, orange_detected_2, orange_detected_3, orange_detected_4, orange_detected_5, orange_detected_6;
 reg black_detected_1, black_detected_2, black_detected_3, black_detected_4, black_detected_5, black_detected_6;
-
-
-
-
-assign pink_detected = 
-// (	
-// (((hue >= 150 && hue <= 180)||(hue <= 6 && hue >= 0)) && (saturation > 84 && value > 245))||
-// (hue <= 6 && hue >= 0 && ((value > 229 && saturation > 17 && saturation < 155)||(value > 210 && saturation > 130)))
-// || ((hue >= 160 && hue <= 180) && ((saturation >= 76 && value >= 249) || (saturation >= 102 && value >= 140)))
-// || (((hue >= 160 && hue <= 180)||(hue >= 0 && hue <= 4)) && (saturation > 140 && saturation <= 179 && value >= 89 && value <= 106)) 
-// ||(((hue >= 172 && hue <= 180)||(hue >= 0 && hue <= 6)) && ((value >  105 && saturation > 102) || (saturation > 82 && value > 168)))) //sat > 102
-//change 1
-( (150 < hue && hue < 180) &&  (90 < saturation && saturation < 120) && (200 < value))
-|| ((hue < 15 && hue >= 10) && (saturation < 125 && saturation > 100) && (value > 140))
-|| ((hue < 23 && hue >= 15) && (saturation < 100 && saturation > 70) && (value > 140))
-|| ((hue < 10) && (saturation < 110 && saturation > 50) && (value > 80));
-
-assign orange_detected = ( ((hue >= 11 && hue <= 15) && (value > 155 && saturation > 150)) 
-|| (( 15 < hue && hue < 20) && (saturation > 110) && (value > 125) ))
-|| ((hue < 12 && hue >= 10) && ( saturation >= 125) && (value > 140));
-
-assign green_detected = ((hue >= 50 && hue <= 75) && (saturation > 105 && value >= 25 )) || ((hue >= 50 && hue <= 75) && ((saturation > 127 && value > 173)))
-//change 2 
-//change 3 test
-||  ((hue > 40 && hue < 90) && ( 10 < value && value < 80) && (saturation > 30));
-
-// change 1 (hue >= 50 && hue <= 75) && (saturation > 105 && value >= 75)
-
-
-assign red_detected = (hue <= 7 && saturation > 150 && value > 50) 
-|| ((hue < 360 && hue > 330) && (saturation > 150) && value > 50)
-|| ((hue < 12 && hue > 7) && (saturation > 170) && value > 170);
-//assign black_final_detected = (value <= 37 && x > 10 && x < IMAGE_W-10 && y > 10 && y < IMAGE_H - 10);	
-
-assign black_detected = (value < 25);
 
 initial begin
 	red_detected_1 = 0;
@@ -436,6 +340,26 @@ always @(posedge clk)begin
 end
 
 
+assign pink_detected = 
+
+( (150 < hue && hue < 180) &&  (90 < saturation && saturation < 120) && (200 < value))
+|| ((hue < 15 && hue >= 10) && (saturation < 125 && saturation > 100) && (value > 140))
+|| ((hue < 23 && hue >= 15) && (saturation < 100 && saturation > 70) && (value > 140))
+|| ((hue < 10) && (saturation < 110 && saturation > 50) && (value > 80));
+
+assign orange_detected = ( ((hue >= 11 && hue <= 15) && (value > 155 && saturation > 150)) 
+|| (( 15 < hue && hue < 20) && (saturation > 110) && (value > 125) ))
+|| ((hue < 12 && hue >= 10) && ( saturation >= 125) && (value > 140));
+
+assign green_detected = ((hue >= 50 && hue <= 75) && (saturation > 105 && value >= 25 )) || ((hue >= 50 && hue <= 75) && ((saturation > 127 && value > 173)))
+||  ((hue > 40 && hue < 90) && ( 10 < value && value < 80) && (saturation > 30));
+
+assign red_detected = (hue <= 7 && saturation > 150 && value > 50) 
+|| ((hue < 360 && hue > 330) && (saturation > 150) && value > 50)
+|| ((hue < 12 && hue > 7) && (saturation > 170) && value > 170);	
+
+assign black_detected = (value < 25);
+
 wire red_final_detected, pink_final_detected, green_final_detected, orange_final_detected, black_final_detected;
 assign red_final_detected = red_detected_1 && red_detected_2 && red_detected_3 && red_detected_4 && red_detected_5 && red_detected_6;
 assign pink_final_detected = pink_detected_1 && pink_detected_2 && pink_detected_3 && pink_detected_4 && pink_detected_5 && pink_detected_6;
@@ -473,162 +397,98 @@ assign bb_active_g = (x == left_g && left_g != IMAGE_W-11'h1) || (x == right_g &
 assign bb_active_o = (x == left_o && left_o != IMAGE_W-11'h1) || (x == right_o && right_o != 0) || (y == top_o && top_o != IMAGE_H-11'h1) || (y == bottom_o && bottom_o != 0);
 assign bb_active_edge = (x == left_edge && left_edge != IMAGE_W-11'h1) || (x == right_edge && right_edge != 0) || (y == top_edge && top_edge != IMAGE_H-11'h1) || (y == bottom_edge && bottom_edge != 0);
 assign bb_active_b = (x == left_b && left_b != IMAGE_W-11'h1) || (x == right_b && right_b != 0) || (y == top_b && top_b != IMAGE_H-11'h1) || (y == bottom_b && bottom_b != 0);
+
+
 // active r = x = left_r |  && red_detected 
 assign new_image = 
 //bb_active_edge ? {24'hf20b97} : 
-
+//{h_edge_detected_final_shifted,h_edge_detected_final_shifted,h_edge_detected_final_shifted}; 
+//{h_edge_detected_final_shifted,h_edge_detected_final_shifted,h_edge_detected_final_shifted}; 
  bb_active_r ? {24'hff0000} : 
- bb_active_p ? {24'hfc0394} : 
- bb_active_g ? {24'h1cfc03} : 
+ //bb_active_p ? {24'h00ff00} : 
+ bb_active_g ? {24'h0000ff} : 
  bb_active_o ? {24'hf0f0f0} : 
- bb_active_b ? {24'hff00ff}:
+ //bb_active_b ? {24'hff00ff} :
  color_high; 
-
 
 assign {red_out, green_out, blue_out} = (mode & ~sop & packet_video) ? new_image : 
 {red,green,blue};
 
-always@(posedge clk) begin
-	if (sop) begin
-		x <= 11'h0;
-		y <= 11'h0;
-		packet_video <= (blue[3:0] == 3'h0);
-	end
-	else if (in_valid) begin
-		if (x == IMAGE_W-1) begin
-			x <= 11'h0;
-			y <= y + 11'h1;
-		end
-		else begin
-			x <= x + 11'h1;
-		end
-	end
-end
-
-// x,y represent position of a single pixel. Every clk 1 new pixel coming in.
-
-
-//Find first and last red pixels
-reg [10:0] x_min, y_min, x_max, y_max;
-reg [10:0] x_min_r, x_min_p, x_min_g, x_min_o, x_min_b;
-reg [10:0] y_min_r, y_min_p, y_min_g, y_min_o, y_min_b;
-reg [10:0] x_max_r, x_max_p, x_max_g, x_max_o, x_max_b;
-reg [10:0] y_max_r, y_max_p, y_max_g, y_max_o, y_max_b;
-
-reg h_edge_detected_final_1, h_edge_detected_final_2;
-
-reg [10:0] edge_x_min, edge_x_max, edge_y_min, edge_y_max;
 
 
 
-always@(posedge clk) begin
-	h_edge_detected_final_1 <= h_edge_detected_final;
-	h_edge_detected_final_2 <= h_edge_detected_final_1;
-	if (in_valid & sop & in_valid) begin	//Reset bounds on start of packet
-			x_min_r <= IMAGE_W-11'h1;
-			x_max_r <= 0;
-			y_min_r <= IMAGE_H-11'h1;
-			y_max_r <= 0;
-			x_min_g <= IMAGE_W-11'h1;
-			x_max_g <= 0;
-			y_min_g <= IMAGE_H-11'h1;
-			y_max_g <= 0;
-			x_min_o <= IMAGE_W-11'h1;
-			x_max_o <= 0;
-			y_min_o <= IMAGE_H-11'h1;
-			y_max_o <= 0;
-			x_min_p <= IMAGE_W-11'h1;
-			x_max_p <= 0;
-			y_min_p <= IMAGE_H-11'h1;
-			y_max_p <= 0;
-			edge_x_min <= IMAGE_W-11'h1;
-			edge_x_max <= 0;
-			edge_y_min <= IMAGE_H-11'h1;
-			edge_y_max <= 0;
-	end
-	else begin
-		//if (red_final_detected & in_valid & (h_edge_detected_final || h_edge_detected_final_1 || h_edge_detected_final_2)) begin	//Update bounds when the pixel is red
-		if (red_final_detected & in_valid) begin	//Update bounds when the pixel is red
-			if (x < x_min_r) x_min_r <= x;
-			if (x > x_max_r) x_max_r <= x;
-			if (y < y_min_r) y_min_r <= y;
-			if (y > y_max_r) y_max_r <= y;
-		end
-		
-		//else if (green_detected & green_final_detected & in_valid & (h_edge_detected_final || h_edge_detected_final_1 || h_edge_detected_final_2)) begin	//Update bounds when the pixel is red
-		else if (green_final_detected & in_valid) begin
-			if (x < x_min_g) x_min_g <= x;
-			if (x > x_max_g) x_max_g <= x;
-			if (y < y_min_g) y_min_g <= y;
-			if (y > y_max_g) y_max_g <= y;
-		end
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Refined Filter
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//Count valid pixels to tget the image coordinates. Reset and detect packet type on Start of Packet.
+reg [10:0] x, y;
+reg packet_video;
+//counting how many pixels detected are there in a row;
+reg [10:0] count_r, count_p, count_o, count_g, count_b;
+//count how many pixels in this color between the edge gap
+reg [10:0] max_start_edge_x_position_r,  max_start_edge_x_position_p, max_start_edge_x_position_o, max_start_edge_x_position_g, max_start_edge_x_position_b;
+reg [10:0] max_end_edge_x_position_r, max_end_edge_x_position_p, max_end_edge_x_position_o, max_end_edge_x_position_g, max_end_edge_x_position_b;
+// TODO: Refined with better math model
+// The trusted region base on the previous X row
+reg [10:0] estimatated_region_start_r, estimatated_region_end_r;
+reg [10:0] estimatated_region_start_p, estimatated_region_end_p;
+reg [10:0] estimatated_region_start_o, estimatated_region_end_o;
+reg [10:0] estimatated_region_start_g, estimatated_region_end_g;
+reg [10:0] estimatated_region_start_b, estimatated_region_end_b;
+// The trusted meatrix
+reg[7:0] estimated_val_r, estimated_val_p, estimated_val_o, estimated_val_g, estimated_val_b;
 
-		// else if (pink_detected & pink_final_detected & in_valid & (h_edge_detected_final || h_edge_detected_final_1 || h_edge_detected_final_2) & in_valid) begin	//Update bounds when the pixel is red		else if (pink_detected & pink_final_detected & in_valid & (h_edge_detected_final || h_edge_detected_final_1 || h_edge_detected_final_2) & in_valid) begin	//Update bounds when the pixel is red
-		else if (pink_final_detected & in_valid) begin
-			if (x < x_min_p) x_min_p <= x;
-			if (x > x_max_p) x_max_p <= x;
-			if (y < y_min_p) y_min_p <= y;
-			if (y > y_max_p) y_max_p <= y;
-		end
-		
-		// else if (orange_detected & orange_final_detected & in_valid & (h_edge_detected_final || h_edge_detected_final_1 || h_edge_detected_final_2) & in_valid) begin	//Update bounds when the pixel is red
-		else if (orange_final_detected & in_valid ) begin	//Update bounds when the pixel is red
-			if (x < x_min_o) x_min_o <= x;
-			if (x > x_max_o) x_max_o <= x;
-			if (y < y_min_o) y_min_o <= y;
-			if (y > y_max_o) y_max_o <= y;
-		end
+wire [10:0] mid_deviation_r, mid_deviation_p, mid_deviation_o, mid_deviation_g, mid_deviation_b;
+wire [10:0] difference_r, difference_p, difference_o, difference_g, difference_b;
 
-		// else if (black_detected  & black_final_detected & in_valid & (h_edge_detected_final || h_edge_detected_final_1 || h_edge_detected_final_2) & in_valid) begin	//Update bounds when the pixel is red
-		else if (black_final_detected & in_valid ) begin
-			if (x < x_min_b) x_min_b <= x;
-			if (x > x_max_b) x_max_b <= x;
-			if (y < y_min_b) y_min_b <= y;
-			if (y > y_max_b) y_max_b <= y;
-		end
 
-		// else if (h_edge_detected_final & in_valid ) begin
-		// 	if (x < edge_x_min) edge_x_min <= x;
-		// 	if (x > edge_x_max) edge_x_max <= x;
-		// 	if (y < edge_y_min) edge_y_min <= y;
-		// 	if (y > edge_y_max) edge_y_max <= y;
-		// end
-	end
-		
+// trusted y learned from the previous N rows
+reg [10:0] estimated_y_min_r, estimated_y_min_p, estimated_y_min_g, estimated_y_min_o, estimated_y_min_b;
+reg [10:0] estimated_y_max_r, estimated_y_max_p, estimated_y_max_g, estimated_y_max_o, estimated_y_max_b;
 
-end
 
-//Process bounding box at the end of the frame.
-reg [1:0] msg_state;
-reg [7:0] frame_count;
+reg [7:0] estimated_val_y_max_r, estimated_val_y_max_p, estimated_val_y_max_g, estimated_val_y_max_o, estimated_val_y_max_b;
+reg [7:0] estimated_val_y_min_r, estimated_val_y_min_p, estimated_val_y_min_g, estimated_val_y_min_o, estimated_val_y_min_b;
+reg [10:0] immediate_y_min_r,immediate_y_min_p,immediate_y_min_g,immediate_y_min_o,immediate_y_min_b;
+reg [10:0] immediate_y_max_r,immediate_y_max_p,immediate_y_max_g,immediate_y_max_o,immediate_y_max_b;
 
-reg [10:0] left_r_1, left_r_2, left_r_3, left_r_4;
-reg [10:0] right_r_1, right_r_2, right_r_3, right_r_4;
-reg [10:0] top_r_1, top_r_2, top_r_3, top_r_4;
-reg [10:0] bottom_r_1, bottom_r_2, bottom_r_3, bottom_r_4;
 
-reg [10:0] left_p_1, left_p_2, left_p_3, left_p_4;
-reg [10:0] right_p_1, right_p_2, right_p_3, right_p_4;
-reg [10:0] top_p_1, top_p_2, top_p_3, top_p_4;
-reg [10:0] bottom_p_1, bottom_p_2, bottom_p_3, bottom_p_4;
 
-reg [10:0] left_o_1, left_o_2, left_o_3, left_o_4;
-reg [10:0] right_o_1, right_o_2, right_o_3, right_o_4;
-reg [10:0] top_o_1, top_o_2, top_o_3, top_o_4;
-reg [10:0] bottom_o_1, bottom_o_2, bottom_o_3, bottom_o_4;
+assign mid_deviation_r =  ((estimatated_region_end_r + estimatated_region_start_r) > (max_start_edge_x_position_r + max_end_edge_x_position_r)) ? 
+							((estimatated_region_end_r + estimatated_region_start_r) - (max_start_edge_x_position_r + max_end_edge_x_position_r))
+							: ((max_start_edge_x_position_r + max_end_edge_x_position_r) - ( estimatated_region_end_r + estimatated_region_start_r ));
 
-reg [10:0] left_g_1, left_g_2, left_g_3, left_g_4;
-reg [10:0] right_g_1, right_g_2, right_g_3, right_g_4;
-reg [10:0] top_g_1, top_g_2, top_g_3, top_g_4;
-reg [10:0] bottom_g_1, bottom_g_2, bottom_g_3, bottom_g_4;
 
-reg [10:0] left_b_1, left_b_2, left_b_3, left_b_4;
-reg [10:0] right_b_1, right_b_2, right_b_3, right_b_4;
-reg [10:0] top_b_1, top_b_2, top_b_3, top_b_4;
-reg [10:0] bottom_b_1, bottom_b_2, bottom_b_3, bottom_b_4;
+assign mid_deviation_p =  ((estimatated_region_end_p + estimatated_region_start_p) > (max_start_edge_x_position_p + max_end_edge_x_position_p)) ? 
+							((estimatated_region_end_p + estimatated_region_start_p) - (max_start_edge_x_position_p + max_end_edge_x_position_p))
+							: ((max_start_edge_x_position_p + max_end_edge_x_position_p) - ( estimatated_region_end_p + estimatated_region_start_p ));
+
+
+assign mid_deviation_o =  ((estimatated_region_end_o + estimatated_region_start_o) > (max_start_edge_x_position_o + max_end_edge_x_position_o)) ? 
+							((estimatated_region_end_o + estimatated_region_start_o) - (max_start_edge_x_position_o + max_end_edge_x_position_o))
+							: ((max_start_edge_x_position_o + max_end_edge_x_position_o) - ( estimatated_region_end_o + estimatated_region_start_o ));
+
+assign mid_deviation_g =  ((estimatated_region_end_g + estimatated_region_start_g) > (max_start_edge_x_position_g + max_end_edge_x_position_g)) ? 
+							((estimatated_region_end_g + estimatated_region_start_g) - (max_start_edge_x_position_g + max_end_edge_x_position_g))
+							: ((max_start_edge_x_position_g + max_end_edge_x_position_g) - ( estimatated_region_end_g + estimatated_region_start_g ));
+
+assign mid_deviation_b =  ((estimatated_region_end_b + estimatated_region_start_b) > (max_start_edge_x_position_b + max_end_edge_x_position_b)) ? 
+							((estimatated_region_end_b + estimatated_region_start_b) - (max_start_edge_x_position_b + max_end_edge_x_position_b))
+							: ((max_start_edge_x_position_b + max_end_edge_x_position_b) - ( estimatated_region_end_b + estimatated_region_start_b ));
+
+assign difference_r = max_end_edge_x_position_r - max_start_edge_x_position_r;
+assign difference_p = max_end_edge_x_position_p - max_start_edge_x_position_p;
+assign difference_o = max_end_edge_x_position_o - max_start_edge_x_position_o;
+assign difference_g = max_end_edge_x_position_g - max_start_edge_x_position_g;
+assign difference_b = max_end_edge_x_position_b - max_start_edge_x_position_b;
+
 
 always@(posedge clk) begin
-	if (eop & in_valid & packet_video) begin  //Ignore non-video packets
+    if (in_valid) begin
+		//Cycle through message writer states once started
+		if (msg_state != 2'b00) msg_state <= msg_state + 2'b01;
+		
+		if (eop & in_valid & packet_video) begin  //Ignore non-video packets
 		//Latch edges for display overlay on next frame
 
 			left_r <= x_min_r;
@@ -650,13 +510,13 @@ always@(posedge clk) begin
 			right_o <= x_max_o;
 			top_o <= y_max_o;
 			bottom_o <= y_min_o;
-
+			//end
 			left_edge <= edge_x_min;
 			right_edge <= edge_x_max;
 			top_edge <= edge_y_max;
 			bottom_edge <= edge_y_min;
 
-//   keep last 4 values
+			//keep last 4 values
 
 			//red
 
@@ -765,19 +625,533 @@ always@(posedge clk) begin
 			bottom_b_2 <= bottom_b_1;
 			bottom_b_3 <= bottom_b_2;
 			bottom_b_4 <= bottom_b_3;
+			
+			//window for last frame, frame is refreshed every eop
+			
+			//Start message writer FSM once every MSG_INTERVAL frames, if there is room in the FIFO
+			frame_count <= frame_count - 1;
+			
+			if (frame_count == 0 && msg_buf_size < MESSAGE_BUF_MAX - 3) begin
+				msg_state <= 2'b01;
+				frame_count <= MSG_INTERVAL-1;
+			end
+		end
 
-		frame_count <= frame_count - 1;
+		//parameter MESSAGE_BUF_MAX = 256 parameter MSG_INTERVAL = 6;
+		else if (sop & in_valid) begin	//Reset bounds on start of packet
+				x_min_r <= IMAGE_W-11'h1;
+				x_max_r <= 0;
+				y_min_r <= IMAGE_H-11'h1;
+				y_max_r <= 0;
+				x_min_g <= IMAGE_W-11'h1;
+				x_max_g <= 0;
+				y_min_g <= IMAGE_H-11'h1;
+				y_max_g <= 0;
+				x_min_o <= IMAGE_W-11'h1;
+				x_max_o <= 0;
+				y_min_o <= IMAGE_H-11'h1;
+				y_max_o <= 0;
+				x_min_p <= IMAGE_W-11'h1;
+				x_max_p <= 0;
+				y_min_p <= IMAGE_H-11'h1;
+				y_max_p <= 0;
+				edge_x_min <= IMAGE_W-11'h1;
+				edge_x_max <= 0;
+				edge_y_min <= IMAGE_H-11'h1;
+				edge_y_max <= 0;
+				estimated_val_r <= 0;
+				estimated_val_p <= 0;
+				estimated_val_o <= 0;
+				estimated_val_g <= 0;
+				estimated_val_b <= 0;
+				count_r <= 0;
+				count_p <= 0;
+				count_g <= 0;
+				count_o <= 0;
+				count_b <= 0;	
+				estimated_val_y_min_r <= 0; estimated_val_y_min_p <= 0; estimated_val_y_min_g <= 0; estimated_val_y_min_o <= 0; estimated_val_y_min_b <= 0;
+				estimated_val_y_max_r <= 0; estimated_val_y_max_p <= 0; estimated_val_y_max_g <= 0; estimated_val_y_max_o <= 0; estimated_val_y_max_b <= 0;
+				immediate_y_min_r <= 0; immediate_y_min_p <= 0; immediate_y_min_g <= 0; immediate_y_min_o <= 0; immediate_y_min_b <= 0;
+				immediate_y_max_r <= 0; immediate_y_max_p <= 0; immediate_y_max_g <= 0; immediate_y_max_o <= 0; immediate_y_max_b <= 0;
+			end
+	
+	
+		else begin					
+				if(red_final_detected) 			count_r <= count_r + 1;
+				else if (pink_final_detected) 	count_p <= count_p + 1;
+				else if (green_final_detected) 	count_g <= count_g + 1;
+				else if (orange_final_detected) count_o <= count_o + 1;
+				else if (black_final_detected) 	count_b <= count_b + 1;
+				/////////////////////////////////////////////////
+				// Row :: locating max_valid_region in a row or counting red..
+				/////////////////////////////////////////////////
+
+				//if (red_final_detected & in_valid & (h_edge_detected_final || h_edge_detected_final_1 || h_edge_detected_final_2)) begin	//Update bounds when the pixel is red
+				if (red_final_detected & in_valid) begin	//Update bounds when the pixel is red
+					if (x < max_start_edge_x_position_r) max_start_edge_x_position_r <= x;
+					if (x > max_end_edge_x_position_r) max_end_edge_x_position_r <= x;
+				end
+				//else if (green_detected & green_final_detected & in_valid & (h_edge_detected_final || h_edge_detected_final_1 || h_edge_detected_final_2)) begin	//Update bounds when the pixel is red
+				else if (green_final_detected & in_valid) begin
+					if (x < max_start_edge_x_position_g) max_start_edge_x_position_g <= x;
+					if (x > max_end_edge_x_position_g) max_end_edge_x_position_g <= x;
+				end
+				// else if (pink_detected & pink_final_detected & in_valid & (h_edge_detected_final || h_edge_detected_final_1 || h_edge_detected_final_2) & in_valid) begin	//Update bounds when the pixel is red		else if (pink_detected & pink_final_detected & in_valid & (h_edge_detected_final || h_edge_detected_final_1 || h_edge_detected_final_2) & in_valid) begin	//Update bounds when the pixel is red
+				else if (pink_final_detected & in_valid) begin
+					if (x < max_start_edge_x_position_p) max_start_edge_x_position_p <= x;
+					if (x > max_end_edge_x_position_p) max_end_edge_x_position_p <= x;
+				end	
+				// else if (orange_detected & orange_final_detected & in_valid & (h_edge_detected_final || h_edge_detected_final_1 || h_edge_detected_final_2) & in_valid) begin	//Update bounds when the pixel is red
+				else if (orange_final_detected & in_valid ) begin	//Update bounds when the pixel is red
+					if (x < max_start_edge_x_position_o) max_start_edge_x_position_o <= x;
+					if (x > max_end_edge_x_position_o) max_end_edge_x_position_o <= x;	
+				end
+				// else if (black_detected  & black_final_detected & in_valid & (h_edge_detected_final || h_edge_detected_final_1 || h_edge_detected_final_2) & in_valid) begin	//Update bounds when the pixel is red
+				else if (black_final_detected & in_valid ) begin
+					if (x < max_start_edge_x_position_b) max_start_edge_x_position_b <= x;
+					if (x > max_end_edge_x_position_b) max_end_edge_x_position_b <= x;
+				end
+			end
+		end
+
+
+     		//////////////////////////////////////////////////////////////
+			// Column :: 
+     		//////////////////////////////////////////////////////////////
+	if (x == IMAGE_W-1) begin
+		count_r <= 0;
+		count_p <= 0;
+		count_g <= 0;
+		count_o <= 0;
+		count_b <= 0;	
+		max_start_edge_x_position_r <=  IMAGE_W-11'h1;
+		max_end_edge_x_position_r <= 0;
+		max_start_edge_x_position_p <=  IMAGE_W-11'h1;
+		max_end_edge_x_position_p <= 0;
+		max_start_edge_x_position_o <=  IMAGE_W-11'h1;
+		max_end_edge_x_position_o <= 0;
+		max_start_edge_x_position_g <=  IMAGE_W-11'h1;
+		max_end_edge_x_position_g <= 0;
+		max_start_edge_x_position_b <=  IMAGE_W-11'h1;
+		max_end_edge_x_position_b <= 0;
+
+		// when the estimation is not valid
+		//Red
+		if(count_r > count_threshold )begin
+			if(estimated_val_r == 0) begin
+				estimatated_region_start_r <= max_start_edge_x_position_r;
+				estimatated_region_end_r <= max_end_edge_x_position_r;
+				// error choice, reset.
+				x_min_r <= IMAGE_W-11'h1;
+				x_max_r <= 0;
+				y_min_r <= IMAGE_H-11'h1;
+				y_max_r <= 0;
+				estimated_val_r <= 1;
+			end
+
+			else begin
+				if(mid_deviation_r > horizontal_edge_region_threshold)begin
+					estimated_val_r <= estimated_val_r - 1;
+				end
+				else begin
+					//discuss difference
+					if(difference_r < difference_threshold )begin
+						//valid row
+						estimated_val_r <= estimated_val_r + 1;
+						// choose the x region
+						if(x_min_r > max_start_edge_x_position_r) begin
+							x_min_r <= max_start_edge_x_position_r;
+						end
+						if(x_max_r < max_end_edge_x_position_r) begin
+							x_max_r <= max_end_edge_x_position_r;
+						end
+						//////////////////////////////////////////////////////////////
+						// Y
+						//////////////////////////////////////////////////////////////
+						if(estimated_val_y_min_r == 0)
+						begin
+								immediate_y_min_r <= y;
+								y_min_r <= y;
+								estimated_val_y_min_r <= 1;
+						end
+						else begin if(y - immediate_y_min_r > y_threshold) begin					
+								estimated_val_y_min_r <= estimated_val_y_min_r - 1;
+								//change 1
+								//immediate_y_min_r <= y;
+							end 
+							else begin	
+								estimated_val_y_min_r <= estimated_val_y_min_r + 1;	
+								immediate_y_min_r <= y;							
+							end
+						end 
+
+						// max					
+						if(estimated_val_y_max_r  == 0) 
+						begin
+							immediate_y_max_r <= y;
+							
+							y_min_r <= y;
+								
+							estimated_val_y_max_r <= 1;
+						end 
+						else begin 
+							if(y - immediate_y_max_r < y_threshold) begin
+								estimated_val_y_max_r <= estimated_val_y_max_r + 1;
+								immediate_y_max_r <= y;
+								y_max_r <= y;
+							end
+							else begin
+								//change 2
+								//immediate_y_max_r <= y;
+								estimated_val_y_max_r <= estimated_val_y_max_r - 1;
+							end
+						end
+
+					end
+				end
+				//else do nothing
+			end
+		end
+	
 		
-		if (frame_count == 0 && msg_buf_size < MESSAGE_BUF_MAX - 3) begin
-			msg_state <= 2'b01;
-			frame_count <= MSG_INTERVAL-1;
+		//Pink
+		if(count_p > count_threshold )begin
+			if(estimated_val_p == 0)begin
+				estimatated_region_start_p <= max_start_edge_x_position_p;
+				estimatated_region_end_p <= max_end_edge_x_position_p;
+				//reset
+				left_p <= IMAGE_W-11'h1;
+				right_p <= 0;
+				top_p <= IMAGE_W-11'h1;
+				bottom_p <= 0;
+				estimated_val_p <= 1;
+			end
+			else begin
+				if(mid_deviation_p > horizontal_edge_region_threshold)begin
+					estimated_val_p <= estimated_val_p - 1;
+				end
+				else begin
+					if(difference_p < difference_threshold )begin
+						estimated_val_p <= estimated_val_p + 1;
+						if(x_min_p > max_start_edge_x_position_p) begin
+							x_min_p <= max_start_edge_x_position_p;
+						end
+						if(x_max_p < max_end_edge_x_position_p) begin
+							x_max_p <= max_end_edge_x_position_p;
+						end
+
+						if(estimated_val_y_min_p == 0)
+						begin
+								immediate_y_min_p <= y;
+								y_min_p <= y;
+								estimated_val_y_min_p <= 1;
+						end
+						else begin if(y - immediate_y_min_p > y_threshold) begin					
+								estimated_val_y_min_p <= estimated_val_y_min_p - 1;
+							end 
+							else begin	
+								estimated_val_y_min_p <= estimated_val_y_min_p + 1;	
+								immediate_y_min_p <= y;							
+							end
+						end 
+
+						// max	
+							
+						if(estimated_val_y_max_p == 0) 
+						begin
+							immediate_y_max_p <= y;
+							
+							y_min_p <= y;
+								
+							estimated_val_y_max_p <= 1;
+						end 
+						else begin 
+							if(y - immediate_y_max_p < y_threshold) begin
+								estimated_val_y_max_p <= estimated_val_y_max_p + 1;
+								immediate_y_max_p <= y;
+								y_max_p <= y;
+							end
+							else begin
+								estimated_val_y_max_p <= estimated_val_y_max_p - 1;
+							end
+						end
+					end
+				end
+			end
+		end
+
+
+		//Orange
+		if(count_o > count_threshold) begin
+			if(estimated_val_o == 0)begin
+				estimatated_region_start_o <= max_start_edge_x_position_o;
+				estimatated_region_end_o <= max_end_edge_x_position_o;
+				//reset
+				x_min_o <= IMAGE_W-11'h1;
+				x_max_o <= 0;
+				y_min_o <= IMAGE_H-11'h1;
+				y_max_o <= 0;
+				estimated_val_o <= 1;
+			end
+			else begin
+				if(mid_deviation_o > horizontal_edge_region_threshold)begin
+					estimated_val_o <= estimated_val_o - 1;
+				end
+				else begin
+					if(difference_o < difference_threshold)begin
+						estimated_val_o <= estimated_val_o + 1;
+						if(x_min_o > max_start_edge_x_position_o) begin
+							x_min_o <= max_start_edge_x_position_o;
+						end
+						if(x_max_o < max_end_edge_x_position_o) begin
+							x_max_o <= max_end_edge_x_position_o;
+						end
+
+
+																					
+						if(estimated_val_y_min_o == 0)
+						begin
+								immediate_y_min_o <= y;
+								y_min_o <= y;
+								estimated_val_y_min_o <= 1;
+						end
+						else begin if(y - immediate_y_min_o > y_threshold) begin					
+								estimated_val_y_min_o <= estimated_val_y_min_o - 1;
+							end 
+							else begin	
+								estimated_val_y_min_o <= estimated_val_y_min_o + 1;	
+								immediate_y_min_o <= y;							
+							end
+						end 
+
+						// max	
+							
+						if(estimated_val_y_max_o  == 0) 
+						begin
+							immediate_y_max_o <= y;
+							
+							y_min_o <= y;
+								
+							estimated_val_y_max_o <= 1;
+						end 
+						else begin 
+							if(y - immediate_y_max_o < y_threshold) begin
+								estimated_val_y_max_o <= estimated_val_y_max_o + 1;
+								immediate_y_max_o <= y;
+								y_max_o <= y;
+							end
+							else begin
+								estimated_val_y_max_o <= estimated_val_y_max_o - 1;
+							end
+						end
+
+					end
+				end
+			end
+		end
+	
+		//Green
+		if(count_g > count_threshold) begin
+			if(estimated_val_g == 0)begin
+				estimatated_region_start_g <= max_start_edge_x_position_g;
+				estimatated_region_end_g <= max_end_edge_x_position_g;
+				//reset
+				x_min_g <= IMAGE_W-11'h1;
+				x_max_g <= 0;
+				y_min_g <= IMAGE_H-11'h1;
+				y_max_g <= 0;
+				estimated_val_g <= 1;
+
+			end
+			else begin
+				if(mid_deviation_g > horizontal_edge_region_threshold)begin
+					estimated_val_g <= estimated_val_g - 1;
+				end
+				else begin
+					if(difference_g < difference_threshold )begin
+						estimated_val_g <= estimated_val_g + 1;
+						if(x_min_g > max_start_edge_x_position_g) begin
+							x_min_g <= max_start_edge_x_position_g;
+						end
+						if(x_max_g < max_end_edge_x_position_g) begin
+							x_max_g <= max_end_edge_x_position_g;
+						end
+						if(estimated_val_y_min_g == 0)
+						begin
+								immediate_y_min_g <= y;
+								y_min_g <= y;
+								estimated_val_y_min_g <= 1;
+						end
+						else begin if(y - immediate_y_min_g > y_threshold) begin					
+								estimated_val_y_min_g <= estimated_val_y_min_g - 1;
+							end 
+							else begin	
+								estimated_val_y_min_g <= estimated_val_y_min_g + 1;	
+								immediate_y_min_g <= y;							
+							end
+						end 
+
+						// max	
+							
+						if(estimated_val_y_max_g  == 0) 
+						begin
+							immediate_y_max_g <= y;
+							
+							y_min_g <= y;
+								
+							estimated_val_y_max_g <= 1;
+						end 
+						else begin 
+							if(y - immediate_y_max_g < y_threshold) begin
+								estimated_val_y_max_g <= estimated_val_y_max_g + 1;
+								immediate_y_max_g <= y;
+								y_max_g <= y;
+							end
+							else begin
+								estimated_val_y_max_g <= estimated_val_y_max_g - 1;
+							end
+						end
+
+					end
+				end
+			end
+		end
+		//Black
+		if(count_b > count_threshold) begin
+			if(estimated_val_b == 0)begin
+				estimatated_region_start_b <= max_start_edge_x_position_b;
+				estimatated_region_end_b <= max_end_edge_x_position_b;
+				//reset
+				x_min_b <= IMAGE_W-11'h1;
+				x_max_b <= 0;
+				y_min_b <= IMAGE_H-11'h1;
+				y_max_b <= 0;
+				estimated_val_b <= 1;
+			end
+			else begin
+				if(mid_deviation_b > horizontal_edge_region_threshold)begin
+					estimated_val_b <= estimated_val_b - 1;
+				end
+				else begin
+					if(difference_b < difference_threshold )begin
+						estimated_val_b <= estimated_val_b + 1;
+						if(x_min_b > max_start_edge_x_position_b) begin
+							x_min_b <= max_start_edge_x_position_b;
+						end
+						if(x_max_b < max_end_edge_x_position_b) begin
+							x_max_b <= max_end_edge_x_position_b;
+						end
+						// choose y region
+						if(estimated_val_y_min_b == 0)
+						begin
+								immediate_y_min_b <= y;
+								y_min_b <= y;
+								estimated_val_y_min_b <= 1;
+						end
+						else begin if(y - immediate_y_min_b > y_threshold) begin					
+								estimated_val_y_min_b <= estimated_val_y_min_b - 1;
+							end 
+							else begin	
+								estimated_val_y_min_b <= estimated_val_y_min_b + 1;	
+								immediate_y_min_b <= y;							
+							end
+						end 
+
+						// max	
+							
+						if(estimated_val_y_max_b == 0) 
+						begin
+							immediate_y_max_b <= y;
+							
+							y_min_b <= y;
+								
+							estimated_val_y_max_b <= 1;
+						end 
+						else begin 
+							if(y - immediate_y_max_b < y_threshold) begin
+								estimated_val_y_max_b <= estimated_val_y_max_b + 1;
+								immediate_y_max_b <= y;
+								y_max_b <= y;
+							end
+							else begin
+								estimated_val_y_max_b <= estimated_val_y_max_b - 1;
+							end
+						end
+
+					end
+				end
+			end
 		end
 	end
-	//parameter MESSAGE_BUF_MAX = 256 parameter MSG_INTERVAL = 6;
-	
-	//Cycle through message writer states once started
-	if (msg_state != 2'b00) msg_state <= msg_state + 2'b01;
+end
+		
 
+
+
+
+always@(posedge clk) begin
+	if (sop) begin
+		x <= 11'h0;
+		y <= 11'h0;
+		packet_video <= (blue[3:0] == 3'h0);
+	end
+	else if (in_valid) begin
+		if (x == IMAGE_W-1) begin
+			x <= 11'h0;
+			y <= y + 11'h1;
+		end
+		else begin
+			x <= x + 11'h1;
+		end
+	end
+end
+
+// x,y represent position of a single pixel. Every clk 1 new pixel coming in.
+
+
+//Find first and last red pixels
+reg [10:0] x_min, y_min, x_max, y_max;
+reg [10:0] x_min_r, x_min_p, x_min_g, x_min_o, x_min_b;
+reg [10:0] y_min_r, y_min_p, y_min_g, y_min_o, y_min_b;
+reg [10:0] x_max_r, x_max_p, x_max_g, x_max_o, x_max_b;
+reg [10:0] y_max_r, y_max_p, y_max_g, y_max_o, y_max_b;
+
+reg [10:0] edge_x_min, edge_x_max, edge_y_min, edge_y_max;
+
+
+
+//Process bounding box at the end of the frame.
+reg [1:0] msg_state;
+reg [7:0] frame_count;
+
+reg [10:0] left_r_1, left_r_2, left_r_3, left_r_4;
+reg [10:0] right_r_1, right_r_2, right_r_3, right_r_4;
+reg [10:0] top_r_1, top_r_2, top_r_3, top_r_4;
+reg [10:0] bottom_r_1, bottom_r_2, bottom_r_3, bottom_r_4;
+
+reg [10:0] left_p_1, left_p_2, left_p_3, left_p_4;
+reg [10:0] right_p_1, right_p_2, right_p_3, right_p_4;
+reg [10:0] top_p_1, top_p_2, top_p_3, top_p_4;
+reg [10:0] bottom_p_1, bottom_p_2, bottom_p_3, bottom_p_4;
+
+reg [10:0] left_o_1, left_o_2, left_o_3, left_o_4;
+reg [10:0] right_o_1, right_o_2, right_o_3, right_o_4;
+reg [10:0] top_o_1, top_o_2, top_o_3, top_o_4;
+reg [10:0] bottom_o_1, bottom_o_2, bottom_o_3, bottom_o_4;
+
+reg [10:0] left_g_1, left_g_2, left_g_3, left_g_4;
+reg [10:0] right_g_1, right_g_2, right_g_3, right_g_4;
+reg [10:0] top_g_1, top_g_2, top_g_3, top_g_4;
+reg [10:0] bottom_g_1, bottom_g_2, bottom_g_3, bottom_g_4;
+
+reg [10:0] left_b_1, left_b_2, left_b_3, left_b_4;
+reg [10:0] right_b_1, right_b_2, right_b_3, right_b_4;
+reg [10:0] top_b_1, top_b_2, top_b_3, top_b_4;
+reg [10:0] bottom_b_1, bottom_b_2, bottom_b_3, bottom_b_4;
+
+
+always@(posedge clk) begin
+	
 end
 
 
@@ -896,15 +1270,6 @@ STREAM_REG #(.DATA_WIDTH(26)) out_reg (
 `define READ_ID    				2
 `define REG_BBCOL					3
 
-//Status register bits
-// 31:16 - unimplemented
-// 15:8 - number of words in message buffer (read only)
-// 7:5 - unused
-// 4 - flush message buffer (write only - read as 0)
-// 3:0 - unused
-
-
-// Process write
 
 reg  [7:0]   reg_status;
 reg	[23:0]	bb_col;
@@ -934,8 +1299,7 @@ assign msg_buf_flush = (s_chipselect & s_write & (s_address == `REG_STATUS) & s_
 reg read_d; //Store the read signal for correct updating of the message buffer
 
 // Copy the requested word to the output port when there is a read.
-always @ (posedge clk)
-begin
+always @ (posedge clk) begin
    if (~reset_n) begin
 	   s_readdata <= {32'b0};
 		read_d <= 1'b0;
@@ -960,10 +1324,13 @@ assign msg_buf_rd = s_chipselect & s_read & ~read_d & ~msg_buf_empty & (s_addres
 // colour + coordinate  = {0'b0, colour(3 bits), 12 bits for x_coordinate}
 // colour + distance    = {0'b1, colour(3 bits), 12 bits for distance    }
 
-wire formate_r, formate_p, formate_g, formate_o,												formate_b;
-reg [11:0] distance_r, distance_p, distance_g, distance_o,                                            distance_b;
-wire valid_r, valid_p, valid_g, valid_o,                     								    valid_b;
-wire [11:0] red_center_x_pixel, pink_center_x_pixel, green_center_x_pixel, orange_center_x_pixel,		black_center_x_pixel;
+wire formate_r, formate_p, formate_g, formate_o, formate_b;
+reg [11:0] distance_r, distance_p, distance_g, distance_o, distance_b;
+reg valid_r, valid_p, valid_g, valid_o, valid_b;
+reg valid_r_1, valid_p_1, valid_g_1, valid_o_1, valid_b_1;
+reg valid_r_2, valid_p_2, valid_g_2, valid_o_2, valid_b_2;
+reg valid_r_3, valid_p_3, valid_g_3, valid_o_3, valid_b_3;
+wire [11:0] red_center_x_pixel, pink_center_x_pixel, green_center_x_pixel, orange_center_x_pixel,black_center_x_pixel;
 distance_cal red_ball( 
 	.left_bound(avg_left_r), 
 	.right_bound(avg_right_r),
@@ -1002,80 +1369,175 @@ distance_cal orange_ball(
 );
 
 wire [11:0] c_1,c_2,c_3,c_4,c_5;
-wire [2:0] data_colour;
+
 
 reg selected_r, selected_p, selected_o, selected_b, selected_g;
 // reg [15:0] message_to_ESP32;ss
 
 // minmum distance;
-assign c_1 = (valid_r && distance_r && ~selected_r)? distance_r : 12'b111111111111;
-assign c_2 = (valid_p && distance_p < c_1 && ~selected_p) ? distance_p : c_1;
-assign c_3 = (valid_g && distance_g < c_2 && ~selected_g) ? distance_g : c_2;
+assign c_1 = (valid_r && ~selected_r)? distance_r : 12'b111111111111;
+assign c_2 = (0 && distance_p < c_1 && ~selected_p) ? distance_p : c_1;
+assign c_3 = (0 && distance_g < c_2 && ~selected_g) ? distance_g : c_2;
 assign c_4 = (valid_o && distance_o < c_3 && ~selected_o) ? distance_o : c_3;
-assign c_5 = (valid_b && distance_b < c_4 && ~selected_b) ? distance_b : c_4;
+assign c_5 = (0 && distance_b < c_4 && ~selected_b) ? distance_b : c_4;
 
-assign data_colour = (lock_r) ? 3'b000: 
-					 (lock_p) ? 3'b001: 
-					 (lock_g) ? 3'b010: 
-					 (lock_o) ? 3'b011: 
-					 (lock_b) ? 3'b100: 
-					 (c_5 == distance_r) ? 3'b000 :
-					 (c_5 == distance_p) ? 3'b001 :
-					 (c_5 == distance_g) ? 3'b010 :
-					 (c_5 == distance_o) ? 3'b011 :
-					 (c_5 == distance_b) ? 3'b100 : 3'b111;		
+//wire [2:0] data_colour;
+// assign data_colour = (lock_r) ? 3'b000: 
+// 					 (lock_p) ? 3'b001: 
+// 					 (lock_g) ? 3'b010: 
+// 					 (lock_o) ? 3'b011: 
+// 					 (lock_b) ? 3'b100: 
+// 					 (c_5 == distance_r) ? 3'b000 :
+// 					 (c_5 == distance_p) ? 3'b001 :
+// 					 (c_5 == distance_g) ? 3'b010 :
+// 					 (c_5 == distance_o) ? 3'b011 :
+// 					 (c_5 == distance_b) ? 3'b100 : 3'b111;		
 
+reg [2:0] data_colour;
+reg moving_forward_r,moving_forward_p,moving_forward_g,moving_forward_o,moving_forward_b;
 
 always @(posedge clk) begin
-	// flush selected signal if target is no longer within detection range.
-	if(~valid_r) selected_r <= 0;
-	if(~valid_p) selected_p <= 0;
-	if(~valid_o) selected_o <= 0;
-	if(~valid_b) selected_b <= 0;
-	if(~valid_g) selected_g <= 0;	
+	if(eop) begin
+		valid_r_1 <= valid_r;
+		valid_r_2 <= valid_r_1;
+		valid_r_3 <= valid_r_2;
 
-	// select signal to indicate the location information of the target have been obtained by ESP32;
-	if(message_from_ESP32 == 5) begin
-		selected_r <= 1;
-	end  
-	else if(message_from_ESP32 == 6) begin
-		selected_p <= 1;
-	end
-	else if(message_from_ESP32 == 7) begin
-		selected_g <= 1;
-	end
-	else if(message_from_ESP32 == 8) begin
-		selected_o <= 1;
-	end
-	else if(message_from_ESP32 == 9) begin
-		selected_b <= 1;
+		valid_p_1 <= valid_p;
+		valid_p_2 <= valid_p_1;
+		valid_p_3 <= valid_p_2;
+
+		valid_o_1 <= valid_o;
+		valid_o_2 <= valid_o_1;
+		valid_o_3 <= valid_o_2;
+		
+		valid_g_1 <= valid_g;
+		valid_g_2 <= valid_g_1;
+		valid_g_3 <= valid_g_2;
+		
+		valid_b_1 <= valid_b;
+		valid_b_2 <= valid_b_1;
+		valid_b_3 <= valid_b_2;
 	end
 end
 
+always @(posedge clk) begin
+	//esp32 has successfully received red distance. red is now in the selected set
 
+	// unlock the target and block the target.
+	if(message_from_ESP32 == 50) begin
+		moving_forward_r <= 1;
+		moving_forward_p <= 1;
+		moving_forward_g <= 1;
+		moving_forward_o <= 1;
+		moving_forward_b <= 1;
+	end
+	// 1 moving forward
+
+	//if(message_from_ESP32 == 21) moving_forward_or_rotate <= 0;
+	// 0 rotate 
+	
+	else if(message_from_ESP32 == 30) begin
+		selected_r <= 1;
+	end else if(message_from_ESP32 == 31) begin
+		selected_p <= 1;
+	end else if(message_from_ESP32 == 32) begin
+		selected_g <= 1;
+	end else if(message_from_ESP32 == 33) begin
+		selected_o <= 1;
+	end else if(message_from_ESP32 == 34) begin
+		selected_b <= 1;
+	end else if(message_from_ESP32 == 70)begin
+			selected_r <= 0;
+			selected_p <= 0;
+			selected_o <= 0;
+			selected_g <= 0;
+			selected_b <= 0;
+	end else begin
+		if(~valid_r && ~valid_r_1 && ~valid_r_2 && ~valid_r_3 && moving_forward_r)begin 
+			selected_r <= 0; 
+			moving_forward_r <= 0;
+		end
+		if(~valid_p && ~valid_p_1 && ~valid_p_2 && ~valid_p_3 && moving_forward_p) begin 
+			selected_p <= 0; 
+			moving_forward_p <= 0;
+		end  
+		if(~valid_g && ~valid_g_1 && ~valid_g_2 && ~valid_g_3 && moving_forward_g) begin
+			selected_g <= 0;
+			moving_forward_g <=0;
+		end
+		if(~valid_o && ~valid_o_1 && ~valid_o_2 && ~valid_o_3 && moving_forward_o) begin 
+			selected_o <= 0; 
+			moving_forward_o <= 0;
+		end 
+		if(~valid_b && ~valid_b_1 && ~valid_b_2 && ~valid_b_3 && moving_forward_b) begin 
+			selected_b <= 0; 
+			moving_forward_b <= 0;
+		end
+	end
+	
+end
+
+
+always @(posedge clk)begin
+	if(message_from_ESP32 == 70) begin
+		data_colour <=  3'b111;
+	end
+	else begin
+		data_colour <=  (lock_r) ? 3'b000: 
+						(lock_p) ? 3'b001: 
+						(lock_g) ? 3'b010: 
+						(lock_o) ? 3'b011: 
+						(lock_b) ? 3'b100: 
+						(c_5 == distance_r && valid_r) ? 3'b000 :
+						(c_5 == distance_p && valid_p) ? 3'b001 :
+						(c_5 == distance_g && valid_g) ? 3'b010 :
+						(c_5 == distance_o && valid_o) ? 3'b011 :
+						(c_5 == distance_b && valid_b) ? 3'b100 : 3'b111;	
+	end				
+end
 
 always @(*) begin
 	if(message_from_ESP32 == 10) begin
 		//0
-		message_to_ESP32 = {1'b0, 3'b000, red_center_x_pixel};end 
+		message_to_ESP32 = {1'b0, 3'b000, 9'b0, ~valid_o, moving_forward_o, lock_o}; end 
 	else if(message_from_ESP32 == 11)begin
 		//1
-		message_to_ESP32 = {1'b0, 3'b001, 1'b0, avg_right_o}; end 
+		//message_to_ESP32 = {1'b0, 3'b001, 1'b0, y}; end
+		message_to_ESP32 = {1'b0, 3'b001, 7'b0, valid_r, valid_p, valid_g, valid_o, valid_b}; end 
 	else if(message_from_ESP32 == 12) begin
 		//2
-		message_to_ESP32 = {1'b0, 3'b010, 1'b0, avg_left_o}; end
+		message_to_ESP32 = {1'b0, 3'b010, 7'b0, selected_r, selected_p, selected_g, selected_o, selected_b}; end 	
 	else if(message_from_ESP32 == 13) begin
 		//3
-		message_to_ESP32 = {1'b0, 3'b011, orange_center_x_pixel}; end
+		message_to_ESP32 = {1'b0, 3'b100, 7'b0, moving_forward_r, moving_forward_p, moving_forward_g, moving_forward_o, moving_forward_b};
+	end
 	else if(message_from_ESP32 == 14) begin
 		//4
-		message_to_ESP32 = {1'b0, 3'b100,7'b0,formate_r,formate_p,formate_g,formate_o,formate_b}; end
+		case(data_colour)
+			0 : message_to_ESP32 = (formate_r)? {1'b0, data_colour, distance_r}: {1'b1, data_colour, red_center_x_pixel};	 
+			1 : message_to_ESP32 = (formate_p)? {1'b0, data_colour, distance_p}: {1'b1, data_colour, pink_center_x_pixel};
+			2 : message_to_ESP32 = (formate_g)? {1'b0, data_colour, distance_g}: {1'b1, data_colour, green_center_x_pixel};
+			3 : message_to_ESP32 = (formate_o)? {1'b0, data_colour, distance_o}: {1'b1, data_colour, orange_center_x_pixel};
+			4 : message_to_ESP32 = (formate_b)? {1'b0, data_colour, distance_b}: {1'b1, data_colour, black_center_x_pixel};
+			7 : message_to_ESP32 = 16'b1111111111111111;
+			default : message_to_ESP32 = 0;
+		endcase 
+		end
 	else if(message_from_ESP32 == 15) begin
 		//5
-		message_to_ESP32 = {1'b0, 3'b101,7'b0,valid_r,valid_p,valid_g,valid_o,valid_b}; end
+		message_to_ESP32 = {1'b0, 3'b101, 1'b0, y_max_r}; end
 	else if(message_from_ESP32 == 16) begin
 		//6
 		message_to_ESP32 = {1'b0, 3'b110,  1'b0, (avg_left_o + avg_right_o)/2}; end
+
+	else if (message_from_ESP32 == 70) begin
+ 		if(~selected_o  && ~selected_r && ~selected_p && ~selected_g && ~selected_b) begin
+			 message_to_ESP32 = 16'd60;
+		 end else begin
+			message_to_ESP32 = 16'd70;
+		 end
+		
+	end 
 	else begin
 		case(data_colour)
 			0 : message_to_ESP32 = (formate_r)? {1'b0, data_colour, distance_r}: {1'b1, data_colour, red_center_x_pixel};	 
@@ -1086,21 +1548,64 @@ always @(*) begin
 			7 : message_to_ESP32 = 16'b1111111111111111;
 			default : message_to_ESP32 = 0;
 		endcase
-		//message_to_ESP32 = (formate_o)? {1'b0, data_colour, distance_o}: {1'b1, data_colour, orange_center_x_pixel};
+		//message_to_ESP32 = (formate_o)? {1'b0, x, distance_o}: {1'b1, data_colour, orange_center_x_pixel};
 	end 
 	//message_to_ESP32 = {distance_r, data_colour, valid_r,valid_b,valid_g,valid_p,valid_r, c_5};
 end
 
-
 reg lock_r, lock_p, lock_o, lock_g, lock_b;
 always @(posedge clk) begin
-	case(data_colour)
-			0 : lock_r <= (selected_r)? 0:(~formate_r)? 1:0;
-			1 : lock_p <= (selected_p)? 0:(~formate_p)? 1:0;
-			2 : lock_g <= (selected_g)? 0:(~formate_g)? 1:0;
-			3 : lock_o <= (selected_o)? 0:(~formate_o)? 1:0;
-			4 : lock_b <= (selected_b)? 0:(~formate_b)? 1:0;
-	endcase
+	if(message_from_ESP32 == 70) begin
+		lock_r <= 0;
+		lock_p <= 0;
+		lock_o <= 0;
+		lock_g <= 0;
+		lock_b <= 0;
+	end 
+	else begin
+		case(data_colour)
+			0 : begin
+					if(selected_r)begin
+						lock_r <= 0;
+					end 
+					else if(formate_r) begin
+						lock_r <=1;
+					end
+				end
+			1 : begin
+					if(selected_p)begin
+						lock_p <= 0;
+					end 
+					else if(formate_p) begin
+						lock_p <=1;
+					end
+				end
+			2 : begin
+					if(selected_g)begin
+						lock_g <= 0;
+					end 
+					else if(formate_g) begin
+						lock_g <=1;
+					end
+				end
+			3 : begin
+					if(selected_o)begin
+						lock_o <= 0;
+					end 
+					else if(formate_o) begin
+						lock_o <=1;
+					end
+				end
+			4 : begin
+					if(selected_b)begin
+						lock_b <= 0;
+					end 
+					else if(formate_b) begin
+						lock_b <=1;
+					end
+				end
+		endcase
+	end 
 end
 endmodule
 

@@ -4,7 +4,7 @@ JedecChain;
 	DefaultMfr(6E);
 
 	P ActionCode(Cfg)
-		Device PartName(10M50DAF484) Path("D:/ImperialProgram/EOY/EEE2Rover/DE10_LITE_D8M_VIP_16/output_files/") File("DE10_LITE_D8M_VIP_time_limited.sof") MfrSpec(OpMask(1));
+		Device PartName(10M50DAF484) Path("C:/Users/EEE Undergraduate/Desktop/EEE2detect/EEE2Rover(2)/EEE2Rover/DE10_LITE_D8M_VIP_16/output_files/") File("DE10_LITE_D8M_VIP_time_limited.sof") MfrSpec(OpMask(1));
 
 ChainEnd;
 
