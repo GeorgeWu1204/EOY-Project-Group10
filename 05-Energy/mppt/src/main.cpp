@@ -1,224 +1,202 @@
-// max system clk - 20MHz
-// control loop freq - 1.25kHz
+// MPPT Buck
 
 #include <Arduino.h>
-#include <SPI.h>
 #include <Wire.h>
 #include <INA219_WE.h>
-#include <SD.h>
 
-#define ARDUINO_LED_BUILT_IN    13
-#define OPEN_OR_CLOSED_LOOP     2
-#define BUCK_OR_BOOST           3
-#define PWM                     6
-#define VO_INDICATOR_LED        7
+// A0 - Vb (output voltage)
+// A2 - Vref (potentiometer)
+// A3 - Vpd (part of input voltage)
+
+#define OUTPUT_VOLTAGE A0
+#define RELAY_BATTERY  7 
 
 INA219_WE ina219;
 
-Sd2Card card;
-SdVolume volume;
-SdFile root;
-const int chipSelect = 10;
-
-bool Boost_mode = 0;
-bool CL_mode = 0;
-
 unsigned int sensorValue0, sensorValue1, sensorValue2, sensorValue3;
-float current_mA, vpd0, vb, vref, iL0, dutyref;
-float p0, p1, dv, dp, vpd1, iL1;
+float current_mA, vpd, vb0 = 0, iL0 = 0;
+float p0, p1, dv, dp, vb1 = 0, iL1 = 0;
+unsigned int dutyref = 0;
+float vref = 10, iref = 0.41;
+float ev, ei, cv, ci;
 
-String dataString;
-String header;
-String filename; // name that includes conditions, type of algorithm, load resistor value
+bool loopTrigger;
+enum charger_mode {off, on, bulk, absorption, flt} charger_state;
 
-int count = 0;
 
-//-------------------------------------------------------------------------------------------------------------
+float saturation(unsigned int sat_input, unsigned int uplim, unsigned int lowlim) {
 
-float saturation(float sat_input, float uplim, float lowlim)
-{ 
-  if (sat_input > uplim) sat_input=uplim;
-  else if (sat_input < lowlim ) sat_input=lowlim;
+  if (sat_input > uplim) sat_input = uplim;
+  else if (sat_input < lowlim ) sat_input = lowlim;
   else;
   return sat_input;
+
 }
 
-void sampling(){
+void sampling() {
+  
+  sensorValue0 = analogRead(OUTPUT_VOLTAGE); 
+  current_mA = ina219.getCurrent_mA();
 
-  // Make the initial sampling operations for the circuit measurements
+  analogReference(DEFAULT); // 5V as default for now, external may be more accurate
   
-  sensorValue0 = analogRead(A0); //sample Vb
-  sensorValue2 = analogRead(A2); //sample Vref
-  sensorValue3 = analogRead(A3); //sample Vpd
-  current_mA = ina219.getCurrent_mA(); // sample the inductor current (via the sensor chip)
-  
-  vb = sensorValue0 * (4.096 / 1023.0); // Convert the Vb sensor reading to volts
-  vref = sensorValue2 * (4.096 / 1023.0); // Convert the Vref sensor reading to volts
-  vpd0 = sensorValue3 * (4.096 / 1023.0); // Convert the Vpd sensor reading to volts
+  vb0 = sensorValue0*5/1023;
+  iL0 = current_mA/1000.0;
 
-  // The inductor current is in mA from the sensor so we need to convert to amps.
-  // We want to treat it as an input current in the Boost, so its also inverted
-  // For open loop control the duty cycle reference is calculated from the sensor
-  // differently from the Vref, this time scaled between zero and 1.
-  // The boost duty cycle needs to be saturated with a 0.67 maximum to prevent high output voltages
-  
-  if (Boost_mode == 1){
-    iL0 = -current_mA/1000.0;
-    dutyref = saturation(sensorValue2 * (1.0 / 1023.0), 0.00, 0.67);
-  }else{
-    iL0 = current_mA/1000.0;
-    dutyref = sensorValue2 * (1.0 / 1023.0);
-  }
 }
 
-void pwm_modulate(float pwm_input)
-{
-  analogWrite(6,(int)(pwm_input*255)); 
+void pwm_modulate(unsigned int pwm_input) {
+
+  analogWrite(6, 255-pwm_input);
+
 }
 
-void calculation(float iL0, float iL1, float vpd0, float vpd1)
-{
-  p0 = (vpd0/330*890)*iL0;
-  p1 = vpd1*iL1;
-  dv = vpd0=vpd1;
+void calculation(float iL0, float iL1, float vb0, float vb1) {
+
+  p0 = vb0*iL0;
+  p1 = vb1*iL1;
+  dv = vb0-vb1;
   dp = p0-p1;
+
 }
 
-/*
-ISR(TCA0_CMP1_vect)
-{
+float pidv( float pid_input){
+
+}
+
+ISR(TCA0_CMP1_vect){
+
   TCA0.SINGLE.INTFLAGS |= TCA_SINGLE_CMP1_bm; //clear interrupt flag
-  loopTrigger = 1;
-}*/
+  loopTrigger = true;
 
+}
 
-void setup() // setup code ------------------------------------------------------------------------------------
-{
-  noInterrupts();
+void setup() {
 
-  // pin setup
-  pinMode(ARDUINO_LED_BUILT_IN, OUTPUT);
-  pinMode(OPEN_OR_CLOSED_LOOP, INPUT_PULLUP);
-  pinMode(BUCK_OR_BOOST, INPUT_PULLUP);
-  pinMode(VO_INDICATOR_LED, OUTPUT);
-  analogReference(EXTERNAL);
-
-  // TimerA0 initialization for control-loop interrupt.
-  //TCA0.SINGLE.PER = 999; // set period 
-  //TCA0.SINGLE.CMP1 = 999; // set compare value
-  //TCA0.SINGLE.INTCTRL = TCA_SINGLE_CMP1_bm; // enable compare with channel 1 interrupt
-  //TCA0.SINGLE.CTRLA = TCA_SINGLE_CLKSEL_DIV16_gc | TCA_SINGLE_ENABLE_bm; // system clock/16, ~1MHz.
-  //TCA0.SINGLE.EVCTRL &= ~(TCA_SINGLE_CNTEI_bm); // disable event counting
-  
-  // TimerB0 initialization for PWM output
-  pinMode(PWM, OUTPUT);
-  TCB0.CTRLA = TCB_CLKSEL_CLKDIV1_gc | TCB_ENABLE_bm; // 62.5kHz?
-  pwm_modulate(0.5); //initial duty cycle
-  Serial.println("Set initial duty cycle to 0.5");
-  
-  interrupts();
   Wire.begin(); 
-  Wire.setClock(700000); // comms speed for i2c
+  Wire.setClock(700000);
   ina219.init();
-
-  // Check SD card
-  Serial.println("\nInitializing SD card...");
-  
-  if (!SD.begin(chipSelect)) 
-  {
-    Serial.println("* is a card inserted?");
-    while (true) {}
-  } 
-  else {
-    Serial.println("Wiring is correct and a card is present.");
-  }
-
-  if (SD.exists("SD_Test.csv")) { 
-    Serial.println("file already exist, file will be rewritten");
-    SD.remove("SD_Test.csv");
-  }
   
   Serial.begin(9600);
-  
+
+  analogReference(EXTERNAL);
+
+  pinMode(13, OUTPUT);
+  pinMode(2, INPUT_PULLUP);
+  pinMode(3, INPUT_PULLUP);
+
+  pinMode(6, OUTPUT);
+  TCB0.CTRLA = TCB_CLKSEL_CLKDIV1_gc | TCB_ENABLE_bm;
+
+  pwm_modulate(dutyref);
+
+  // interrupt for checking output voltage every 1ms
+  TCA0.SINGLE.PER = 999; 
+  TCA0.SINGLE.CMP1 = 999; 
+  TCA0.SINGLE.CTRLA = TCA_SINGLE_CLKSEL_DIV16_gc | TCA_SINGLE_ENABLE_bm; //16 prescaler, 1M.
+  TCA0.SINGLE.INTCTRL = TCA_SINGLE_CMP1_bm; 
+
+  delay(5000);
+
 }
 
+void loop() {
 
-void loop() // start of loop ---------------------------------------------------------------------------------------
-{
-  Serial.println("Start of loop");
+  digitalWrite(13, HIGH);
+  
+  if (loopTrigger){
+    sampling();
+    calculation(iL0, iL1, vb0, vb1);
 
-  sampling();
+    if (vb0 > 5.2){
+      charger_state = off;
+    }
 
-  vpd1 = vpd0;
+    loopTrigger = false;
+
+  }
+
+  switch(charger_state){
+
+    case on:
+        if (vb0 < 4.5){
+            pwm_modulate(255);
+            charger_state = off;
+        }
+        else {
+            digitalWrite(7, LOW);
+            charger_state = bulk;
+        }
+
+    case bulk: // constant current
+        if (dp > 0) {
+            if (dv > 0) {
+                vref += 1;
+            }
+            else {
+                vref -= 1;
+            }
+        }
+        else {
+            if (dv > 0) {
+                vref -= 1;
+            }
+            else {
+                vref += 1;
+            }
+        }
+
+        vref = saturation(vref, 5.2, 4.5);
+        pwm_modulate(vref); 
+        
+        vb1 = vb0;
+        iL1 = iL0;
+
+        if (vb0 > 5){ // limit for battery voltage
+            charger_state = absorption;
+        }
+
+    case absorption: // constant voltage
+        vref = saturation(vref, 5.2, 4.5);
+        ev = vref - vb0;  
+        cv = pidv(ev); 
+        pwm_modulate(cv);
+
+        if (iL0 < 0.05){
+            charger_state = flt;
+        }
+
+    case flt:
+        vref = 5; // floating voltage to be set
+        ev = vref - vb0;  
+        cv = pidv(ev); 
+        pwm_modulate(cv);
+
+        if (vb0 < 4.5){
+            charger_state = bulk;   
+        }
+
+    case off:
+        digitalWrite(7, HIGH);
+
+  }
+
+  pwm_modulate(dutyref);
+
+  vb1 = vb0;
   iL1 = iL0;
 
-  calculation(iL0, iL1, vpd0, vpd1);
+  Serial.print(dutyref/255.0);
+  Serial.print("   ");
+  Serial.print(vb0);
+  Serial.print("   ");
+  Serial.print(iL0);
+  Serial.print("   ");
+  Serial.print(p0);
+  Serial.println("   ");
 
-  if ((vpd0/330*890) > 5)
-  {
-    analogWrite(VO_INDICATOR_LED, 255*((vpd0/330*890-4)/11.8) // LED turns on when output voltage has reached 4V
-  }
+  digitalWrite(13,LOW);
 
-  CL_mode = digitalRead(OPEN_OR_CLOSED_LOOP);
-  Boost_mode = digitalRead(BUCK_OR_BOOST);
+  delay(1000);
 
-  if(Boost_mode)
-  {
-    if (CL_mode)
-    {
-      pwm_modulate(0);
-      // yet to be implemented
-    }
-    else // mppt algorithm
-    {
-      if (dp > 0)
-      {
-        if (dv > 0)
-        {
-          pwm_modulate(dutyref+1);
-        }
-        else 
-        {
-          pwm_modulate(dutyref-1);
-        }
-      }
-      else
-      {
-        if (dv > 0)
-        {
-          pwm_modulate(dutyref-1);
-        }
-        else
-        {
-          pwm_modulate(dutyref+1);
-        }
-      }
-      count++;
-    }
-  }
-  else //disable buck
-  {      
-    if (CL_mode) {
-      pwm_modulate(1); 
-    }
-    else
-    {
-      pwm_modulate(1);
-    }
-  }
-
-  header = "count, PV voltage, PV current, output voltage, power";
-  dataString = String(count) + "," + String(vb) + "," + String(iL0) + "," + String(vpd0/330*890) + "," + String(p0); 
-
-  Serial.println(dataString); 
-
-  File dataFile = SD.open("SD_Test.csv", FILE_WRITE); 
-  
-  if (dataFile){ 
-    dataFile.println(header + '\n' + dataString); 
-  } else {
-    Serial.println("File not open"); 
-  }
-  dataFile.close(); 
 }
-
