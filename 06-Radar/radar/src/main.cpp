@@ -3,14 +3,15 @@
 #include <cmath>
 #include <numeric>
 
-#define RADAR_PIN 1 // to be finalised
+#define RADAR_PIN 2 // to be finalised
+#define DETECTED_PIN 4
 
 float signal_amplitude;
 std::vector<float> v(10);
 
 hw_timer_t* timer = NULL;
 volatile bool sample = false;
-float Ts = 0.001;
+float Ts = 0.1;
 
 float moving_average;
 
@@ -32,17 +33,18 @@ float movingAverage (std::vector<float> &moving_sum, float input){
 
 void setup() {
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   pinMode(RADAR_PIN, INPUT);
 
-  std::fill(v.begin(), v.end(), 0);
+  pinMode(DETECTED_PIN, OUTPUT);
+
+  v.resize(10, 0);
 
   timer = timerBegin(0, 80, true); //divide 80 MHz clock to give 1 micro second
   timerAttachInterrupt(timer, &(onTimer), true);
   timerAlarmWrite(timer, Ts/1e-6, true); // 1 milli second sampling time
   timerAlarmEnable(timer);
-
 
 }
 
@@ -50,18 +52,25 @@ void loop() {
 
   if (sample){
 
-    signal_amplitude = analogRead(RADAR_PIN)*5/1023;
+    signal_amplitude = analogRead(RADAR_PIN)*3.3/4095;
     
     moving_average = movingAverage(v, signal_amplitude);
 
-    if (moving_average > 4.4){
+    Serial.println("signal amplitude : " + String(signal_amplitude));
+    Serial.println("moving_average : " + String(moving_average));
+
+    if (moving_average > 1){
 
       Serial.println("Underground power station detected");
+
+      digitalWrite(DETECTED_PIN, HIGH);
   
     }
     else {
 
       Serial.println("Locating fan......");
+
+      digitalWrite(DETECTED_PIN, LOW);
 
     }
 
@@ -70,4 +79,5 @@ void loop() {
   }
   
   // alternatively, constantly send data to database and locate fan at the end of movement by retrieving coordinates at maximum
+
 }
