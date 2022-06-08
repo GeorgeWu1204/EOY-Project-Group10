@@ -264,6 +264,11 @@ reg pink_detected_1,pink_detected_2,pink_detected_3 ,pink_detected_4, pink_detec
 reg green_detected_1,green_detected_2,green_detected_3, green_detected_4, green_detected_5, green_detected_6;
 reg orange_detected_1, orange_detected_2, orange_detected_3, orange_detected_4, orange_detected_5, orange_detected_6;
 reg black_detected_1, black_detected_2, black_detected_3, black_detected_4, black_detected_5, black_detected_6;
+reg cyan_detected_1, cyan_detected_2, cyan_detected_3, cyan_detected_4, cyan_detected_5, cyan_detected_6;
+reg yellow_detected_1, yellow_detected_2, yellow_detected_3, yellow_detected_4, yellow_detected_5, yellow_detected_6;
+reg blue_detected_1, blue_detected_2, blue_detected_3, blue_detected_4, blue_detected_5, blue_detected_6;
+
+
 
 initial begin
 	red_detected_1 = 0;
@@ -301,7 +306,29 @@ initial begin
 	black_detected_5 = 0;
 	black_detected_6 = 0;
 
+	cyan_detected_1 = 0;
+	cyan_detected_2 = 0;
+	cyan_detected_3 = 0;
+	cyan_detected_4 = 0;
+	cyan_detected_5 = 0;
+	cyan_detected_6 = 0;
+
+	yellow_detected_1 = 0;
+	yellow_detected_2 = 0;
+	yellow_detected_3 = 0;
+	yellow_detected_4 = 0;
+	yellow_detected_5 = 0;
+	yellow_detected_6 = 0;
+
+	blue_detected_1 = 0;
+	blue_detected_2 = 0;
+	blue_detected_3 = 0;
+	blue_detected_4 = 0;
+	blue_detected_5 = 0;
+	blue_detected_6 = 0;
 end
+
+
 always @(posedge clk)begin
 	red_detected_1 <= red_detected;
 	red_detected_2 <= red_detected_1;
@@ -351,8 +378,10 @@ assign orange_detected = ( ((hue >= 11 && hue <= 15) && (value > 155 && saturati
 || (( 15 < hue && hue < 20) && (saturation > 110) && (value > 125) ))
 || ((hue < 12 && hue >= 10) && ( saturation >= 125) && (value > 140));
 
-assign green_detected = ((hue >= 50 && hue <= 75) && (saturation > 105 && value >= 25 )) || ((hue >= 50 && hue <= 75) && ((saturation > 127 && value > 173)))
-||  ((hue > 40 && hue < 90) && ( 10 < value && value < 80) && (saturation > 30));
+// assign green_detected = ((hue >= 50 && hue <= 75) && (saturation > 105 && value >= 25 )) || ((hue >= 50 && hue <= 75) && ((saturation > 127 && value > 173)))
+// ||  ((hue > 40 && hue < 90) && ( 10 < value && value < 80) && (saturation > 30));
+
+assign green_detected = 0;
 
 assign red_detected = (hue <= 7 && saturation > 150 && value > 50) 
 || ((hue < 360 && hue > 330) && (saturation > 150) && value > 50)
@@ -360,21 +389,27 @@ assign red_detected = (hue <= 7 && saturation > 150 && value > 50)
 
 assign black_detected = (value < 25);
 
-wire red_final_detected, pink_final_detected, green_final_detected, orange_final_detected, black_final_detected;
+wire red_final_detected, pink_final_detected, green_final_detected, orange_final_detected, black_final_detected, cyan_final_detected, yellow_final_detected, blue_final_detected;
 assign red_final_detected = red_detected_1 && red_detected_2 && red_detected_3 && red_detected_4 && red_detected_5 && red_detected_6;
 assign pink_final_detected = pink_detected_1 && pink_detected_2 && pink_detected_3 && pink_detected_4 && pink_detected_5 && pink_detected_6;
 assign green_final_detected = green_detected_1 && green_detected_2 && green_detected_3 && green_detected_4 && green_detected_5 && green_detected_6;
 assign orange_final_detected = orange_detected_1 && orange_detected_2 && orange_detected_3 && orange_detected_4 && orange_detected_5 && orange_detected_6;
 assign black_final_detected = black_detected_1 && black_detected_2 && black_detected_3 && black_detected_4 && black_detected_5 && black_detected_6;
+assign cyan_final_detected = cyan_detected_1 && cyan_detected_2 && cyan_detected_3 && cyan_detected_4 && cyan_detected_5 && cyan_detected_6;
+assign yellow_final_detected = yellow_detected_1 && yellow_detected_2 && yellow_detected_3 && yellow_detected_4 && yellow_detected_5 && yellow_detected_6;
+assign blue_final_detected = blue_detected_1 && blue_detected_2 && blue_detected_3 && blue_detected_4 && blue_detected_5 && blue_detected_6;
 
 assign grey = green[7:1] + red[7:2] + blue[7:2]; //Grey = green/2 + red/4 + blue/4
 
 assign color_high  =  
 					  (red_final_detected) ? {8'hff, 8'h0, 8'h0} : 
-					  (green_final_detected) ? {8'h04,8'hbd,8'h42} :
+					  (green_final_detected) ? {24'h59e02c} :
 					  (pink_final_detected) ? {8'hff,8'h00,8'h5d} :
 					  (orange_final_detected) ? {8'hff,8'h77,8'h00} : 
 					  (black_final_detected) ? (24'h00ffff) : 
+					  (cyan_final_detected) ? (24'h2fbd9f):
+					  (yellow_final_detected) ? (24'hede26f):
+					  (blue_final_detected) ? (24'h51e5f4):
 					  {grey, grey, grey};
 
 //red_high pure red if red_detect else grey.
@@ -383,20 +418,19 @@ assign color_high  =
 // Show bounding box
 
 wire [23:0] new_image;
-wire bb_active_r, bb_active_g, bb_active_p, bb_active_o, bb_active_edge, bb_active_b;
+wire bb_active_r, bb_active_g, bb_active_p, bb_active_o, bb_active_b, bb_active_c, bb_active_y, bb_active_blue;
 
-reg [10:0] left_r, left_p, left_g, left_o, left_b;
-reg [10:0] right_r, right_p, right_g, right_o, right_b;
-reg [10:0] top_r, top_p, top_g, top_o, top_b;
-reg [10:0] bottom_r, bottom_p, bottom_g, bottom_o, bottom_b;
-reg [10:0] left_edge, right_edge, top_edge, bottom_edge;
+reg [10:0] left_r, left_p, left_g, left_o, left_b, left_c, left_y, left_blue;
+reg [10:0] right_r, right_p, right_g, right_o, right_b, right_c, right_y, right_blue;
+reg [10:0] top_r, top_p, top_g, top_o, top_b, top_c, top_y, top_blue;
+reg [10:0] bottom_r, bottom_p, bottom_g, bottom_o, bottom_b, bottom_c, bottom_y, bottom_blue;
 
 assign bb_active_r = (x == left_r && left_r != IMAGE_W-11'h1) || (x == right_r && right_r != 0) || (y == top_r && top_r != IMAGE_H-11'h1) || (y == bottom_r && bottom_r != 0);
 assign bb_active_p = (x == left_p && left_p != IMAGE_W-11'h1) || (x == right_p && right_p != 0) || (y == top_p && top_p != IMAGE_H-11'h1) || (y == bottom_p && bottom_p != 0);
 assign bb_active_g = (x == left_g && left_g != IMAGE_W-11'h1) || (x == right_g && right_g != 0) || (y == top_g && top_g != IMAGE_H-11'h1) || (y == bottom_g && bottom_g != 0);
 assign bb_active_o = (x == left_o && left_o != IMAGE_W-11'h1) || (x == right_o && right_o != 0) || (y == top_o && top_o != IMAGE_H-11'h1) || (y == bottom_o && bottom_o != 0);
-assign bb_active_edge = (x == left_edge && left_edge != IMAGE_W-11'h1) || (x == right_edge && right_edge != 0) || (y == top_edge && top_edge != IMAGE_H-11'h1) || (y == bottom_edge && bottom_edge != 0);
 assign bb_active_b = (x == left_b && left_b != IMAGE_W-11'h1) || (x == right_b && right_b != 0) || (y == top_b && top_b != IMAGE_H-11'h1) || (y == bottom_b && bottom_b != 0);
+assign bb_active_c = (x == left_c && left_c != IMAGE_W-11'h1) || (x == right_c && right_c != 0) || (y == top_c && top_c != IMAGE_H-11'h1) || (y == bottom_c && bottom_c != 0);
 
 
 // active r = x = left_r |  && red_detected 
@@ -409,6 +443,9 @@ assign new_image =
  bb_active_g ? {24'h0000ff} : 
  bb_active_o ? {24'hf0f0f0} : 
  //bb_active_b ? {24'hff00ff} :
+ bb_active_c ? {24'h2fbd9f}:
+ bb_active_y ? {24'hede26f}:
+ bb_active_blue ? {24'h51e5f4}:
  color_high; 
 
 assign {red_out, green_out, blue_out} = (mode & ~sop & packet_video) ? new_image : 
@@ -424,10 +461,10 @@ assign {red_out, green_out, blue_out} = (mode & ~sop & packet_video) ? new_image
 reg [10:0] x, y;
 reg packet_video;
 //counting how many pixels detected are there in a row;
-reg [10:0] count_r, count_p, count_o, count_g, count_b;
+reg [10:0] count_r, count_p, count_o, count_g, count_b, count_c, count_y, count_blue;
 //count how many pixels in this color between the edge gap
-reg [10:0] max_start_edge_x_position_r,  max_start_edge_x_position_p, max_start_edge_x_position_o, max_start_edge_x_position_g, max_start_edge_x_position_b;
-reg [10:0] max_end_edge_x_position_r, max_end_edge_x_position_p, max_end_edge_x_position_o, max_end_edge_x_position_g, max_end_edge_x_position_b;
+reg [10:0] max_start_edge_x_position_r,  max_start_edge_x_position_p, max_start_edge_x_position_o, max_start_edge_x_position_g, max_start_edge_x_position_b, max_start_edge_x_position_c, max_start_edge_x_position_y, max_start_edge_x_position_blue;
+reg [10:0] max_end_edge_x_position_r, max_end_edge_x_position_p, max_end_edge_x_position_o, max_end_edge_x_position_g, max_end_edge_x_position_b, max_end_edge_x_position_c, max_end_edge_x_position_y, max_end_edge_x_position_blue;
 // TODO: Refined with better math model
 // The trusted region base on the previous X row
 reg [10:0] estimatated_region_start_r, estimatated_region_end_r;
@@ -435,22 +472,25 @@ reg [10:0] estimatated_region_start_p, estimatated_region_end_p;
 reg [10:0] estimatated_region_start_o, estimatated_region_end_o;
 reg [10:0] estimatated_region_start_g, estimatated_region_end_g;
 reg [10:0] estimatated_region_start_b, estimatated_region_end_b;
-// The trusted meatrix
-reg[7:0] estimated_val_r, estimated_val_p, estimated_val_o, estimated_val_g, estimated_val_b;
+reg [10:0] estimatated_region_start_c, estimatated_region_end_c;
+reg [10:0] estimatated_region_start_y, estimatated_region_end_y;
+reg [10:0] estimatated_region_start_blue, estimatated_region_end_blue;
 
-wire [10:0] mid_deviation_r, mid_deviation_p, mid_deviation_o, mid_deviation_g, mid_deviation_b;
-wire [10:0] difference_r, difference_p, difference_o, difference_g, difference_b;
+// The trusted meatrix
+reg[7:0] estimated_val_r, estimated_val_p, estimated_val_o, estimated_val_g, estimated_val_b, estimated_val_c, estimated_val_y, estimated_val_blue;
+wire [10:0] mid_deviation_r, mid_deviation_p, mid_deviation_o, mid_deviation_g, mid_deviation_b, mid_deviation_c, mid_deviation_y, mid_deviation_blue;
+wire [10:0] difference_r, difference_p, difference_o, difference_g, difference_b, difference_c, difference_y, difference_blue;
 
 
 // trusted y learned from the previous N rows
-reg [10:0] estimated_y_min_r, estimated_y_min_p, estimated_y_min_g, estimated_y_min_o, estimated_y_min_b;
-reg [10:0] estimated_y_max_r, estimated_y_max_p, estimated_y_max_g, estimated_y_max_o, estimated_y_max_b;
+reg [10:0] estimated_y_min_r, estimated_y_min_p, estimated_y_min_g, estimated_y_min_o, estimated_y_min_b, estimated_y_min_c, estimated_y_min_y, estimated_y_min_blue;
+reg [10:0] estimated_y_max_r, estimated_y_max_p, estimated_y_max_g, estimated_y_max_o, estimated_y_max_b, estimated_y_max_c, estimated_y_max_y, estimated_y_max_blue;
 
 
-reg [7:0] estimated_val_y_max_r, estimated_val_y_max_p, estimated_val_y_max_g, estimated_val_y_max_o, estimated_val_y_max_b;
-reg [7:0] estimated_val_y_min_r, estimated_val_y_min_p, estimated_val_y_min_g, estimated_val_y_min_o, estimated_val_y_min_b;
-reg [10:0] immediate_y_min_r,immediate_y_min_p,immediate_y_min_g,immediate_y_min_o,immediate_y_min_b;
-reg [10:0] immediate_y_max_r,immediate_y_max_p,immediate_y_max_g,immediate_y_max_o,immediate_y_max_b;
+reg [7:0] estimated_val_y_max_r, estimated_val_y_max_p, estimated_val_y_max_g, estimated_val_y_max_o, estimated_val_y_max_b, estimated_val_y_max_c, estimated_val_y_max_y, estimated_val_y_max_blue;
+reg [7:0] estimated_val_y_min_r, estimated_val_y_min_p, estimated_val_y_min_g, estimated_val_y_min_o, estimated_val_y_min_b, estimated_val_y_min_c, estimated_val_y_min_y, estimated_val_y_min_blue;
+reg [10:0] immediate_y_min_r,immediate_y_min_p,immediate_y_min_g,immediate_y_min_o,immediate_y_min_b, immediate_y_min_c, immediate_y_min_y, immediate_y_min_blue;
+reg [10:0] immediate_y_max_r,immediate_y_max_p,immediate_y_max_g,immediate_y_max_o,immediate_y_max_b, immediate_y_max_c, immediate_y_max_y, immediate_y_max_blue;
 
 
 
@@ -475,6 +515,18 @@ assign mid_deviation_g =  ((estimatated_region_end_g + estimatated_region_start_
 assign mid_deviation_b =  ((estimatated_region_end_b + estimatated_region_start_b) > (max_start_edge_x_position_b + max_end_edge_x_position_b)) ? 
 							((estimatated_region_end_b + estimatated_region_start_b) - (max_start_edge_x_position_b + max_end_edge_x_position_b))
 							: ((max_start_edge_x_position_b + max_end_edge_x_position_b) - ( estimatated_region_end_b + estimatated_region_start_b ));
+
+assign mid_deviation_c =  ((estimatated_region_end_c + estimatated_region_start_c) > (max_start_edge_x_position_c + max_end_edge_x_position_c)) ? 
+							((estimatated_region_end_c + estimatated_region_start_c) - (max_start_edge_x_position_c + max_end_edge_x_position_c))
+							: ((max_start_edge_x_position_c + max_end_edge_x_position_c) - ( estimatated_region_end_c + estimatated_region_start_c ));
+
+assign mid_deviation_y =  ((estimatated_region_end_y + estimatated_region_start_y) > (max_start_edge_x_position_y + max_end_edge_x_position_y)) ? 
+							((estimatated_region_end_b + estimatated_region_start_y) - (max_start_edge_x_position_y + max_end_edge_x_position_y))
+							: ((max_start_edge_x_position_b + max_end_edge_x_position_y) - ( estimatated_region_end_y + estimatated_region_start_y ));
+
+assign mid_deviation_blue =  ((estimatated_region_end_blue + estimatated_region_start_blue) > (max_start_edge_x_position_blue + max_end_edge_x_position_blue)) ? 
+							((estimatated_region_end_blue + estimatated_region_start_blue) - (max_start_edge_x_position_blue + max_end_edge_x_position_blue))
+							: ((max_start_edge_x_position_blue + max_end_edge_x_position_blue) - ( estimatated_region_end_blue + estimatated_region_start_blue ));
 
 assign difference_r = max_end_edge_x_position_r - max_start_edge_x_position_r;
 assign difference_p = max_end_edge_x_position_p - max_start_edge_x_position_p;
@@ -511,11 +563,6 @@ always@(posedge clk) begin
 			top_o <= y_max_o;
 			bottom_o <= y_min_o;
 			//end
-			left_edge <= edge_x_min;
-			right_edge <= edge_x_max;
-			top_edge <= edge_y_max;
-			bottom_edge <= edge_y_min;
-
 			//keep last 4 values
 
 			//red
@@ -1334,6 +1381,7 @@ wire [11:0] red_center_x_pixel, pink_center_x_pixel, green_center_x_pixel, orang
 distance_cal red_ball( 
 	.left_bound(avg_left_r), 
 	.right_bound(avg_right_r),
+	.upper_bound(avg_top_r),
 	.eop(eop),
 	.valid(valid_r),
     .formate(formate_r), 
@@ -1342,7 +1390,8 @@ distance_cal red_ball(
 );
 distance_cal pink_ball( 
 	.left_bound(avg_left_p),
-	.right_bound(avg_right_r),
+	.right_bound(avg_right_p),
+	.upper_bound(avg_top_p),
 	.eop(eop),
 	.valid(valid_p),
 	.formate(formate_p), 
@@ -1352,6 +1401,7 @@ distance_cal pink_ball(
 distance_cal green_ball(
     .left_bound(avg_left_g),
     .right_bound(avg_right_g),
+	.upper_bound(avg_top_g),
 	.eop(eop),
 	.valid(valid_g),
     .formate(formate_g),
@@ -1361,6 +1411,7 @@ distance_cal green_ball(
 distance_cal orange_ball(
     .left_bound(avg_left_o),
     .right_bound(avg_right_o),
+	.upper_bound(avg_top_o),
 	.eop(eop),
 	.valid(valid_o),
     .formate(formate_o),
@@ -1393,8 +1444,12 @@ assign c_5 = (0 && distance_b < c_4 && ~selected_b) ? distance_b : c_4;
 // 					 (c_5 == distance_o) ? 3'b011 :
 // 					 (c_5 == distance_b) ? 3'b100 : 3'b111;		
 
-reg [2:0] data_colour;
-reg moving_forward_r,moving_forward_p,moving_forward_g,moving_forward_o,moving_forward_b;
+reg [2:0] data_colour; 
+reg moving_forward_r, moving_forward_p, moving_forward_g, moving_forward_o, moving_forward_b;
+reg detection_request;
+
+
+
 
 always @(posedge clk) begin
 	if(eop) begin
@@ -1430,6 +1485,7 @@ always @(posedge clk) begin
 		moving_forward_g <= 1;
 		moving_forward_o <= 1;
 		moving_forward_b <= 1;
+		detection_request <= 0;
 	end
 	// 1 moving forward
 
@@ -1438,21 +1494,37 @@ always @(posedge clk) begin
 	
 	else if(message_from_ESP32 == 30) begin
 		selected_r <= 1;
-	end else if(message_from_ESP32 == 31) begin
+	end 
+	else if(message_from_ESP32 == 31) begin
 		selected_p <= 1;
-	end else if(message_from_ESP32 == 32) begin
+	end 
+	else if(message_from_ESP32 == 32) begin
 		selected_g <= 1;
-	end else if(message_from_ESP32 == 33) begin
+	end 
+	else if(message_from_ESP32 == 33) begin
 		selected_o <= 1;
-	end else if(message_from_ESP32 == 34) begin
+	end 
+	else if(message_from_ESP32 == 34) begin
 		selected_b <= 1;
-	end else if(message_from_ESP32 == 70)begin
+	end 
+	else if(message_from_ESP32 == 70)begin
 			selected_r <= 0;
 			selected_p <= 0;
 			selected_o <= 0;
 			selected_g <= 0;
 			selected_b <= 0;
-	end else begin
+			moving_forward_r <= 0;
+			moving_forward_p <= 0;
+			moving_forward_o <= 0;
+			moving_forward_g <= 0;
+			moving_forward_b <= 0;
+			//1507 data colour
+			//1535 for lock
+	end 
+	else if(message_from_ESP32 == 100) begin
+		detection_request <= 1;	
+	end
+	else begin
 		if(~valid_r && ~valid_r_1 && ~valid_r_2 && ~valid_r_3 && moving_forward_r)begin 
 			selected_r <= 0; 
 			moving_forward_r <= 0;
@@ -1515,12 +1587,12 @@ always @(*) begin
 		//4
 		case(data_colour)
 			0 : message_to_ESP32 = (formate_r)? {1'b0, data_colour, distance_r}: {1'b1, data_colour, red_center_x_pixel};	 
-			1 : message_to_ESP32 = (formate_p)? {1'b0, data_colour, distance_p}: {1'b1, data_colour, pink_center_x_pixel};
-			2 : message_to_ESP32 = (formate_g)? {1'b0, data_colour, distance_g}: {1'b1, data_colour, green_center_x_pixel};
+			//1 : message_to_ESP32 = (formate_p)? {1'b0, data_colour, distance_p}: {1'b1, data_colour, pink_center_x_pixel};
+			//2 : message_to_ESP32 = (formate_g)? {1'b0, data_colour, distance_g}: {1'b1, data_colour, green_center_x_pixel};
 			3 : message_to_ESP32 = (formate_o)? {1'b0, data_colour, distance_o}: {1'b1, data_colour, orange_center_x_pixel};
 			4 : message_to_ESP32 = (formate_b)? {1'b0, data_colour, distance_b}: {1'b1, data_colour, black_center_x_pixel};
 			7 : message_to_ESP32 = 16'b1111111111111111;
-			default : message_to_ESP32 = 0;
+			default : message_to_ESP32 = 16'b1111111111111111;
 		endcase 
 		end
 	else if(message_from_ESP32 == 15) begin
@@ -1538,15 +1610,16 @@ always @(*) begin
 		 end
 		
 	end 
+	
 	else begin
 		case(data_colour)
 			0 : message_to_ESP32 = (formate_r)? {1'b0, data_colour, distance_r}: {1'b1, data_colour, red_center_x_pixel};	 
-			1 : message_to_ESP32 = (formate_p)? {1'b0, data_colour, distance_p}: {1'b1, data_colour, pink_center_x_pixel};
-			2 : message_to_ESP32 = (formate_g)? {1'b0, data_colour, distance_g}: {1'b1, data_colour, green_center_x_pixel};
+			//1 : message_to_ESP32 = (formate_p)? {1'b0, data_colour, distance_p}: {1'b1, data_colour, pink_center_x_pixel};
+			//2 : message_to_ESP32 = (formate_g)? {1'b0, data_colour, distance_g}: {1'b1, data_colour, green_center_x_pixel};
 			3 : message_to_ESP32 = (formate_o)? {1'b0, data_colour, distance_o}: {1'b1, data_colour, orange_center_x_pixel};
 			4 : message_to_ESP32 = (formate_b)? {1'b0, data_colour, distance_b}: {1'b1, data_colour, black_center_x_pixel};
 			7 : message_to_ESP32 = 16'b1111111111111111;
-			default : message_to_ESP32 = 0;
+			default : message_to_ESP32 = 16'b1111111111111111;
 		endcase
 		//message_to_ESP32 = (formate_o)? {1'b0, x, distance_o}: {1'b1, data_colour, orange_center_x_pixel};
 	end 
@@ -1568,7 +1641,7 @@ always @(posedge clk) begin
 					if(selected_r)begin
 						lock_r <= 0;
 					end 
-					else if(formate_r) begin
+					else if(formate_r && detection_request) begin
 						lock_r <=1;
 					end
 				end
@@ -1576,7 +1649,7 @@ always @(posedge clk) begin
 					if(selected_p)begin
 						lock_p <= 0;
 					end 
-					else if(formate_p) begin
+					else if(formate_p && detection_request) begin
 						lock_p <=1;
 					end
 				end
@@ -1584,7 +1657,7 @@ always @(posedge clk) begin
 					if(selected_g)begin
 						lock_g <= 0;
 					end 
-					else if(formate_g) begin
+					else if(formate_g && detection_request) begin
 						lock_g <=1;
 					end
 				end
@@ -1592,7 +1665,7 @@ always @(posedge clk) begin
 					if(selected_o)begin
 						lock_o <= 0;
 					end 
-					else if(formate_o) begin
+					else if(formate_o && detection_request) begin
 						lock_o <=1;
 					end
 				end
@@ -1600,7 +1673,7 @@ always @(posedge clk) begin
 					if(selected_b)begin
 						lock_b <= 0;
 					end 
-					else if(formate_b) begin
+					else if(formate_b && detection_request) begin
 						lock_b <=1;
 					end
 				end

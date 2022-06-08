@@ -12,6 +12,7 @@ class roverdrive {
 
         float r = 0;    // local coordinates, frequently reset
         float phi = 0;
+        float phideg = 0;
 
         float dx;
         float dy;
