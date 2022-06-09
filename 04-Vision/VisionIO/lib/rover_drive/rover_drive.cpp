@@ -32,10 +32,18 @@ float r0 = 0;
 
 int count = 0;
 
+int squalout = 70;
+
 void ARDUINO_ISR_ATTR onTimer() {
 
   sample = true;
   count++;
+
+  if (squalout < 70) {
+
+    digitalWrite(26, HIGH);
+
+  }
 
 }
 
@@ -202,6 +210,10 @@ void roverdrive::start() {
   timerAlarmWrite(timer, Ts/1e-6, true); // 1 milli second sampling time
   timerAlarmEnable(timer);
 
+  this->measure();
+
+  pinMode(26,OUTPUT); // surface quality LED check
+
   //pinMode(21, OUTPUT); // timing check
 
   //Serial.println(sample);
@@ -226,11 +238,13 @@ void roverdrive::measure() {
 
     this->r = this->r+this->dr;
     this->phi = this->phi+this->dphi;
+    this->phideg = this->phi*180/PI;
 
     this->vel = this->dr/Ts;
     this->omega = this->dphi/Ts;
 
-    this->squal = this->squalreg/4;
+    this->squal = this->squalreg*4;
+    squalout = this->squal;
 
 }
 

@@ -212,11 +212,14 @@ reg [1:0] MOSIr;  always @(posedge MAX10_CLK1_50) MOSIr <= {MOSIr[0], ARDUINO_IO
 wire MOSI_data = MOSIr[1];
 
 
-// we handle SPI in 8-bits format, so we need a 3 bits counter to count the bits as they come in
+// we handle SPI in 16-bits format, so we need a 4 bits counter to count the bits as they come in
 reg [3:0] bitcnt;
 
 reg byte_received;  // high when a byte has been received
 reg [15:0] byte_data_received;
+reg [15:0] byte_data_received_tmp;
+//byte received to indicate receiving data is finished
+always @(posedge MAX10_CLK1_50) byte_received <= SSEL_active && SCK_risingedge && (bitcnt==4'b1111);
 
 always @(posedge MAX10_CLK1_50)
 begin
@@ -226,12 +229,12 @@ begin
   if(SCK_risingedge)
   begin
     bitcnt <= bitcnt + 4'b0001;
-	 byte_data_received <= {byte_data_received[14:0], MOSI_data};
+	byte_data_received_tmp <= {byte_data_received_tmp[14:0], MOSI_data};
+  end
+  if(byte_received) begin
+	  byte_data_received <= byte_data_received_tmp;
   end
 end
-
-//byte received to indicate receiving data is finished
-always @(posedge MAX10_CLK1_50) byte_received <= SSEL_active && SCK_risingedge && (bitcnt==6'b111111);
 
 
 reg [15:0] byte_data_sent;
@@ -247,7 +250,7 @@ begin
   else
   if(SCK_fallingedge)
   begin
-    if(bitcnt==4'b000000)
+    if(bitcnt==4'b0000)
       byte_data_sent <= 16'h0;  // after that, we send 0s
     else
       byte_data_sent <= {byte_data_sent[14:0], 1'b0};

@@ -5,6 +5,7 @@ module distance_cal
     //input [7:0] cali_distance,
     input [10:0] left_bound,
     input [10:0] right_bound,
+    input [10:0] upper_bound,
     input eop,
     output reg valid,
     output reg formate,
@@ -23,7 +24,9 @@ always @(*) begin
         distance = (cali_size * cali_distance) / (right_bound - left_bound);
         valid =    (left_bound <= 30 && right_bound >= IMAGE_W - 30 )? 0 :
                     (right_bound - left_bound > 200)? 0:
-                    (distance <= 40 && distance >= 25)? 1:0;
+                    // (upper_bound >= 90) ? 0:
+                    (distance <= 55 && distance >= 15)? 1:0;
+
         formate = ((left_bound + right_bound) >> 1 > 280) && ((left_bound + right_bound) >> 1 < 360);
         target_center_x_pixel = (left_bound + right_bound) >> 1;
     end
