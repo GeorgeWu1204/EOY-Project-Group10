@@ -12,11 +12,12 @@ float curr_v;
 unsigned int sensorValue0, sensorValue1, sensorValue2, sensorValue3;
 float current_mA, vpd, vb0 = 0, vref, iL0 = 0;
 float p0, p1, dv, dp, vb1 = 0, iL1 = 0;
-unsigned int dutyref = 20;
+int dutyref = 20;
 
 bool loopTrigger;
+unsigned int int_count = 0;
 
-float saturation(unsigned int sat_input, unsigned int uplim, unsigned int lowlim) {
+float saturation(int sat_input, int uplim, int lowlim) {
 
   if (sat_input > uplim) sat_input = uplim;
   else if (sat_input < lowlim ) sat_input = lowlim;
@@ -37,7 +38,7 @@ void sampling() {
 
 }
 
-void pwm_modulate(unsigned int pwm_input) {
+void pwm_modulate(int pwm_input) {
 
   analogWrite(6,pwm_input);
 
@@ -55,6 +56,7 @@ void calculation(float iL0, float iL1, float vb0, float vb1) {
 ISR(TCA0_CMP1_vect){
   TCA0.SINGLE.INTFLAGS |= TCA_SINGLE_CMP1_bm; //clear interrupt flag
   loopTrigger = 1;
+  
 }
 
 
@@ -96,47 +98,53 @@ void loop() {
 
   if (loopTrigger){
 
+    int_count++;
+
     digitalWrite(13, HIGH);
 
-    sampling();
+    if (int_count == 1000){
+        
+        sampling();
+        calculation(iL0,iL1,vb0,vb1);
 
-    calculation(iL0,iL1,vb0,vb1);
+        if (dp > 0) {
+            if (dv > 0) {
+                dutyref -= 1;
+            }
+            else {
+                dutyref += 1;
+            }
+            }
+        else {
+            if (dv > 0) {
+                dutyref += 1;
+            }
+            else {
+                dutyref -= 1;
+            }
+        }
 
-    if (dp > 0) {
-      if (dv > 0) {
-        dutyref -= 1;
-      }
-      else {
-        dutyref += 1;
-      }
+        dutyref = saturation(dutyref,170,0);
+        pwm_modulate(dutyref);
+
+        vb1 = vb0;
+        iL1 = iL0;
+
+        Serial.print(dutyref/255.0);
+        Serial.print("   ");
+        Serial.print(vb0);
+        Serial.print("   ");
+        Serial.print(iL0);
+        Serial.print("   ");
+        Serial.print(p0);
+        Serial.println("   ");
+
+        int_count = 0;
     }
-    else {
-      if (dv > 0) {
-        dutyref += 1;
-      }
-      else {
-        dutyref -= 1;
-      }
-    }
-
-    dutyref = saturation(dutyref,170,0);
-    pwm_modulate(dutyref);
-
-    vb1 = vb0;
-    iL1 = iL0;
-
-    Serial.print(dutyref/255.0);
-    Serial.print("   ");
-    Serial.print(vb0);
-    Serial.print("   ");
-    Serial.print(iL0);
-    Serial.print("   ");
-    Serial.print(p0);
-    Serial.println("   ");
 
     curr_v = vb0;
     unsigned int sw0, sw1;
-
+    /*
     sw1 = 0;
 
     if ((curr_v > 4.6) && (sw1 == 0)){
@@ -160,7 +168,7 @@ void loop() {
       Serial.println("OFF");
 
     }
-    else if ((curr_v < 5.1>) && (sw1 = 1)){
+    else if ((curr_v < 5.1) && (sw1 = 1)){
 
       digitalWrite(RELAY_PIN, HIGH);
       sw0 = 1;
@@ -168,7 +176,7 @@ void loop() {
 
     }
 
-    sw1 = sw0;
+    sw1 = sw0;*/
 
     digitalWrite(13,LOW);
 
