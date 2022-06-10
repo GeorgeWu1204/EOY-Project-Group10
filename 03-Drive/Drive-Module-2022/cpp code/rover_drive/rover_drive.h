@@ -1,61 +1,38 @@
-class roverdrive {
+#ifndef ROVER_DRIVE_H
+#define ROVER_DRIVE_H
 
-    public:
+void roverBegin();
 
-        roverdrive();
+void roverStop();
 
-        int state = 0; // 0 = idle, 1 = rotating, 2 = moving, 3 = awaiting
+void roverWait();
 
-        float x = 0;
-        float y = 0;
-        float r = 0;
-        float phi = 0;
+void roverPause();
 
-        float dx;
-        float dy;
-        float dr;
-        float dphi;
+void roverResume();
 
-        float vel;
-        float omega;
+void roverTranslate(float v);
 
-        void start();
+void roverRotate(float omega);
 
-        void measure();
+void roverTranslateToTarget(float rtarget, float v);
 
-        void translate(float rtarget);
-        void rotate(float phitarget);
+void roverRotateToTarget(float phitarget, float omega);
 
-        void twopoint(float x, float y);
+void roverRotateBack(float omega);
 
-        void motorA(float v);
-        void motorB(float v);
+void roverMoveToTarget(float xtarget, float ytarget, float v, float omega);
 
-        void brake();
+float getRoverX();
 
-        int squal;
+float getRoverY();
 
-        void fixedvel(float velref);
+float getRoverTheta(bool degrees);
 
-    private:
+float getRoverR();
 
-        int convTwosComp(int b);
+float getRoverPhi(bool degrees);
 
-        void mousecam_reset();
-        void mousecam_init();
-        void mousecam_write_reg(int reg, int val);
-        int mousecam_read_reg(int reg);
-        void mousecam_read_motion();
+void roverResetGlobalCoords();
 
-        int motion;
-        int squalreg;
-        int dxreg;
-        int dyreg;
-        int shutter;
-        int max_pix;
-
-        float scale = 0.2;
-
-        float pid(float input, float kp, float ki, bool limit, float& e1, float& u1);
-
-};
+#endif
