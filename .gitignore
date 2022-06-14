@@ -3,3 +3,5 @@ Doc
 *.log
 *.vsdx
 *.docx
+matlab/
+*.mat
