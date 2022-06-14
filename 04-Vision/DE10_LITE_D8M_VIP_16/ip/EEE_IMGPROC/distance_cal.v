@@ -9,7 +9,7 @@ module distance_cal
     input eop,
     output reg valid,
     output reg formate,
-    output reg [11:0] target_center_x_pixel,
+    output reg [10:0] target_center_x_pixel,
     output reg [11:0] distance
     //output [7:0] distance,
     // output [7:0] heigh 
@@ -22,10 +22,10 @@ parameter cali_distance = 11'd30;
 always @(*) begin
     if(eop)begin
         distance = (cali_size * cali_distance) / (right_bound - left_bound);
-        valid =    (left_bound <= 30 && right_bound >= IMAGE_W - 30 )? 0 :
-                    (right_bound - left_bound > 200)? 0:
-                    // (upper_bound >= 90) ? 0:
-                    (distance <= 55 && distance >= 15)? 1:0;
+        valid =  (left_bound <= 30 && right_bound >= IMAGE_W - 30 )? 0 :
+                 (right_bound - left_bound > 200)? 0:
+                // (upper_bound >= 90) ? 0:
+                 (distance <= 55 && distance >= 15)? 1:0;
 
         formate = ((left_bound + right_bound) >> 1 > 280) && ((left_bound + right_bound) >> 1 < 360);
         target_center_x_pixel = (left_bound + right_bound) >> 1;
