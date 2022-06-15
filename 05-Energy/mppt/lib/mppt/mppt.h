@@ -1,9 +1,8 @@
 #ifndef MPPT_H
 #define MPPT_H
 
-void sampling();
 
-float movingAverage (Vector<float> &moving_sum, float input);
+void sampling();
 
 float saturation(int sat_input, int uplim, int lowlim);
 

@@ -37,13 +37,6 @@ SdFile root;
 const int chipSelect = 10; //hardwired chip select for the SD card
 String SDprint;
 
-// EDIT FILE NAME AND TYPE OF TEST HERE
-String fileName = "SD_Test.csv";
-unsigned int testcase = 2;
-// 1 - open loop load/battery characterisation
-// 2 - mppt in varying lighting
-// 3 - inc in varying lighting
-
 int pavg0, pavg1;
 int INDEX = 0;
 int VALUE = 0;
@@ -59,18 +52,6 @@ void sampling() {
   current_mA = ina219.getCurrent_mA();
   iL0 = -current_mA;
   lighting = analogRead(PHOTODIODE);
-
-}
-
-float movingAverage (Vector<float> &moving_sum, float input) {
-
-  moving_sum.remove(0); 
-  moving_sum.push_back(input); 
-  
-  for (int i = 0; i < 10; i++){
-    acc = acc + moving_sum[i];
-  }
-  return acc/10;
 
 }
 

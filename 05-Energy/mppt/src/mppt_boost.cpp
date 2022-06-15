@@ -40,7 +40,7 @@ String SDprint;
 
 // EDIT FILE NAME AND TYPE OF TEST HERE
 String fileName = "SD_Test.csv";
-unsigned int testcase = 2;
+unsigned int testcase = 3;
 // 1 - open loop load/battery characterisation
 // 2 - mppt in varying lighting
 // 3 - inc in varying lighting
@@ -49,7 +49,7 @@ int pavg0, pavg1;
 int INDEX = 0;
 int VALUE = 0;
 int SUM = 0;
-int READINGS[10];
+int READINGS[5];
 int AVERAGED = 0;
 
 void sampling() {
@@ -57,21 +57,11 @@ void sampling() {
   //0.375
   vb0 = ((analogRead(A0)*4.096/1023)*2);
   vpd0 = ((analogRead(A3)*4.096/1023)/330*890);
+  vref = ((analogRead(A2)*4.096/1023));
   current_mA = ina219.getCurrent_mA();
   iL0 = -current_mA;
+  //Serial.println(iL0);
   lighting = analogRead(PHOTODIODE);
-
-}
-
-float movingAverage (Vector<float> &moving_sum, float input){
-
-  moving_sum.remove(0); 
-  moving_sum.push_back(input); 
-  
-  for (int i = 0; i < 10; i++){
-    acc = acc + moving_sum[i];
-  }
-  return acc/10;
 
 }
 
@@ -120,10 +110,10 @@ ISR(TCA0_CMP1_vect){
   
 }
 
-void SD_fn(void){
+void SD_fn(){
 
-  SDprint = String(lighting) + "," + String(dutyref/255) + "," + String(vb0) + "," + String(iL0) + "," + String(p0) + "," + String(vpd0);
-
+  SDprint = String(lighting) + "," + String(dutyref/255) + "," + String(vb0) + "," + String(iL0) + "," + String(pavg0) + "," + String(dpavg) + "," + String(vpd0);
+  
   Serial.println(SDprint); 
 
   File dataFile = SD.open("SD_Test.csv", FILE_WRITE);
@@ -144,7 +134,7 @@ void SD_fn(void){
 
 void set_dutyref(float irradiance){ // when relay is off
 
-  off_dutyref = 0.23 - 0.0001125*irradiance;
+  off_dutyref = (0.23 - 0.0001125*irradiance)*255;
 
 }
 
@@ -193,6 +183,7 @@ void setup() {
   pinMode(3, INPUT_PULLUP);
   pinMode(SUPPLY, OUTPUT);
   pinMode(PHOTODIODE, INPUT);
+  pinMode(RELAY_PIN, OUTPUT);
 
   TCA0.SINGLE.PER = 9999; //
   TCA0.SINGLE.CMP1 = 9999; //
@@ -206,8 +197,34 @@ void setup() {
   digitalWrite(SUPPLY, HIGH);
 
   interrupts();  // enable interrupts.
-  pwm_modulate(dutyref);
 
+  sampling();
+
+  if ((curr_v > 4.5) && (curr_v < 5.2)){
+
+    digitalWrite(RELAY_PIN, HIGH);
+    sw0 = 1;
+    Serial.println("INITIAL ON");
+
+  }
+  else if (vb0 > 5.2) {
+    
+    digitalWrite(RELAY_PIN, LOW);
+    sw0 = 0;
+    dutyref = 0;
+    Serial.println("INITIAL OFF TOO HIGH");
+  }
+  else {
+    
+    digitalWrite(RELAY_PIN, LOW);
+    sw0 = 0;
+    dutyref = 0;
+    Serial.println("INITIAL OFF");
+
+  }
+
+  pwm_modulate(dutyref);
+  Serial.println("initial duty cycle set at " + String(dutyref));
 
 }
 
@@ -231,9 +248,9 @@ void loop() {
           open_loop=open_loop-1; 
         }
         // UNCOMMENT when testing w load
-        //open_loop=saturation(open_loop,170,0);
+        open_loop=saturation(open_loop,170,dutyref);
         pwm_modulate(open_loop);
-        Serial.println(open_loop);
+        Serial.println(open_loop/255);
 
         digitalWrite(13,LOW);
         loopTrigger = 0;
@@ -263,11 +280,11 @@ void loop() {
           VALUE = p0;                        // Read the next sensor value
           READINGS[INDEX] = VALUE;           // Add the newest reading to the window
           SUM = SUM + VALUE;                 // Add the newest reading to the sum
-          INDEX = (INDEX+1) % 10;            // Increment the index, and wrap to 0 if it exceeds the window size
+          INDEX = (INDEX+1) % 5;            // Increment the index, and wrap to 0 if it exceeds the window size
+          //Serial.println(pavg0);
+          //Serial.println(p0);
+          pavg0 = SUM / 5;
 
-          pavg0 = SUM / 10;
-
-          pavg1 = pavg0;
 
           if (((vpd0 < 4.6) || (vpd0 > 5.1)) && (di < 200)){ // adjust to safe range only in constant lighting conditions
 
@@ -278,6 +295,13 @@ void loop() {
 
             vpd1 = vpd0;
             curr_v = vpd0;
+
+          }
+
+          if ((pavg0 > 100) && (dutyref < 0)){ // when battery plugged in
+            
+            dutyref = 50;
+            pwm_modulate(dutyref);
 
           }
         }
@@ -292,84 +316,109 @@ void loop() {
 
         sampling();
         mvavg_powerdiff(pavg0, pavg1);
+
+        pavg1 = pavg0;
         
-        if (calculation(iL0, iL1, vb0, vb1, vpd0, vpd1)){ // discard random 0s from ina219
+        if ((calculation(iL0, iL1, vb0, vb1, vpd0, vpd1))){ // discard random 0s from ina219
      
-          if (dpavg < 0){ // MPPT algorithm
+          if ((dpavg < 0) && (pavg0 > 50)){ // MPPT algorithm
 
             sgn = -sgn;
 
           }
 
-          dutyref += sgn*1;
-          //dutyref = saturation(dutyref,170,0);
-          pwm_modulate(dutyref);
+          if (sw0 == 1){
+
+            dutyref += sgn*1;
+            //dutyref = saturation(dutyref,170,0);
+            pwm_modulate(dutyref);
+
+          }
 
           vb1 = vb0;
           iL1 = iL0;
+          curr_v = vpd0;
 
           Serial.println("`````````````````````MPPT (P&O)````````````````````");
 
-          Serial.print(dutyref);
+          Serial.print(dutyref/255);
           Serial.print("   ");
+          Serial.print(iL0);
+          Serial.println("   ");
           Serial.print(p0);
           Serial.println("   ");
 
-          if (curr_v > 4.5){
-
+          if ((curr_v > 4.5) && (curr_v < 5.2)){
+            
+            set_dutyref(lighting);
             digitalWrite(RELAY_PIN, HIGH);
             sw0 = 1;
+            Serial.println("ON");
 
           }
-          else if (curr_v < 4.5){
-
+          else if ((curr_v > 5.2) || (curr_v < 4.5)){
+            
             digitalWrite(RELAY_PIN, LOW);
             sw0 = 0;
-            pwm_modulate(off_dutyref);
+            set_dutyref(lighting);
+            dutyref = 0;
+            pwm_modulate(0);
+            Serial.println("OFF here?");
+            Serial.println("currently duty cycle set at " + String(dutyref));
 
           }
           else if ((curr_v > 5.2) && (sw1 == 1)){
 
             digitalWrite(RELAY_PIN, LOW);
             sw0 = 0;
-            pwm_modulate(off_dutyref);
+            set_dutyref(lighting);
+            dutyref = 0;
+            pwm_modulate(0);
+            Serial.println("OFF hysteresis");
+            Serial.println("currently duty cycle set at " + String(dutyref));
 
           }
           else if ((curr_v < 5.1) && (sw1 == 0)){
 
             digitalWrite(RELAY_PIN, HIGH);
             sw0 = 1;
+            Serial.println("ON");
 
           }
+
+          sw1 = sw0;
+          SD_fn();
+
         }
 
-        SD_fn();
+        
         int_count = 0;
 
       }
       break;
 
     case 3: // incremental conductance mppt
-
+      
       if (loopTrigger){ // fast loop
         
         digitalWrite(13, HIGH);
         sampling();
         
         if (calculation(iL0, iL1, vb0, vb1, vpd0, vpd1)){ // discard random 0s from ina219
-        
+          
+          // moving average implemented to reduce effect of the larger voltage ripple in boost
+
           SUM = SUM - READINGS[INDEX];       // Remove the oldest entry from the sum
           VALUE = p0;                        // Read the next sensor value
           READINGS[INDEX] = VALUE;           // Add the newest reading to the window
           SUM = SUM + VALUE;                 // Add the newest reading to the sum
-          INDEX = (INDEX+1) % 10;            // Increment the index, and wrap to 0 if it exceeds the window size
+          INDEX = (INDEX+1) % 5;            // Increment the index, and wrap to 0 if it exceeds the window size
+          //Serial.println(pavg0);
+          //Serial.println(p0);
+          pavg0 = SUM / 5;
 
-          pavg0 = SUM / 10;
-          mvavg_powerdiff(pavg0, pavg1);
 
-          pavg1 = pavg0;
-
-          if (((vpd0 < 4.6) || (vpd0 > 5.1)) && (di < 200)){ // adjust to safe range only in constant lighting conditions
+          if ((vpd0 < 4.6) || (vpd0 > 5.1) && (di < 200)){ // adjust to safe range only in constant lighting conditions
 
             sgn = -sgn;
             dutyref += sgn*1;
@@ -378,6 +427,13 @@ void loop() {
 
             vpd1 = vpd0;
             curr_v = vpd0;
+
+          }
+
+          if ((pavg0 > 100) && (dutyref < 0)){ // when battery plugged in
+            
+            dutyref = 50;
+            pwm_modulate(dutyref);
 
           }
         }
@@ -391,72 +447,91 @@ void loop() {
       if (int_count == 100){ // slow loop
 
         sampling();
+        mvavg_powerdiff(pavg0, pavg1);
+
+        pavg1 = pavg0;
         
         if (calculation(iL0, iL1, vb0, vb1, vpd0, vpd1)){ // discard random 0s from ina219
      
           // incremental conductance algorithm
-          if (((di == 0) && (dvb == 0)) || (di/dvb == -iL0/vb0)){
+          if (pavg0 > 50){
+            if (((di == 0) && (dvb == 0)) || (di/dvb == -iL0/vb0)){
 
-            sgn = 0;
+              sgn = 0;
 
+            }
+            else if (((dvb == 0) && (di > 0)) || ((di/dvb > -iL0/vb0) && (dp > 0) && (dvb > 0)) || ((di/dvb > -iL0/vb0) && (dp < 0))){
+
+              sgn = 1;
+
+            }
+            else if ((di/dvb > -iL0/vb0) && (dp > 0) && (dvb > 0)){
+
+              sgn = -1;
+
+            }
+
+            dutyref += sgn*1;
+            dutyref = saturation(dutyref,255,10); //prevent it from going wrong region
+            pwm_modulate(dutyref);
+
+            vb1 = vb0;
+            iL1 = iL0;
+
+            Serial.println("`````````````````````MPPT (INC)````````````````````");
+
+            Serial.print(dutyref);
+            Serial.print("   ");
+            Serial.print(p0);
+            Serial.println("   ");
           }
-          else if (((dvb == 0) && (di > 0)) || ((di/dvb > -iL0/vb0) && (dp > 0) && (dv > 0)) || ((di/dvb > -iL0/vb0) && (dp < 0))){
 
-            sgn = 1;
-
-          }
-          else if ((di/dvb > -iL0/vb0) && (dp > 0) && (dv > 0)){
-
-            sgn = -1;
-
-          }
-
-          dutyref += sgn*1;
-          //dutyref = saturation(dutyref,170,0);
-          pwm_modulate(dutyref);
-
-          vb1 = vb0;
-          iL1 = iL0;
-
-          Serial.println("`````````````````````MPPT (INC)````````````````````");
-
-          Serial.print(dutyref);
-          Serial.print("   ");
-          Serial.print(p0);
-          Serial.println("   ");
-
-          if (curr_v > 4.5){
-
+          if ((curr_v > 4.5) && (curr_v < 5.2)){
+            
+            set_dutyref(lighting);
             digitalWrite(RELAY_PIN, HIGH);
             sw0 = 1;
+            Serial.println("ON");
 
           }
-          else if (curr_v < 4.5){
-
+          else if ((curr_v > 5.2) || (curr_v < 4.5)){
+            
             digitalWrite(RELAY_PIN, LOW);
             sw0 = 0;
-            pwm_modulate(off_dutyref);
+            set_dutyref(lighting);
+            dutyref = 0;
+            pwm_modulate(0);
+            Serial.println("OFF here?");
+            Serial.println("currently duty cycle set at " + String(dutyref));
 
           }
           else if ((curr_v > 5.2) && (sw1 == 1)){
 
             digitalWrite(RELAY_PIN, LOW);
             sw0 = 0;
-            pwm_modulate(off_dutyref);
+            set_dutyref(lighting);
+            dutyref = 0;
+            pwm_modulate(0);
+            Serial.println("OFF hysteresis");
+            Serial.println("currently duty cycle set at " + String(dutyref));
 
           }
           else if ((curr_v < 5.1) && (sw1 == 0)){
 
             digitalWrite(RELAY_PIN, HIGH);
             sw0 = 1;
+            Serial.println("ON");
 
           }
+
+          sw1 = sw0;
+          SD_fn();
+
         }
 
-        SD_fn();
         int_count = 0;
-
       }
-    break;
 
+    break;
+  }
 }
