@@ -17,8 +17,6 @@ exploration::exploration(){
     #define yBound 17
 }
 
-
-
 std::vector<double> exploration::locate_alien(std::vector<int> rover_position, std::vector<double> polar_coordinate, int current_car_altitude)
 {
     double distance = polar_coordinate[0];
@@ -46,9 +44,12 @@ std::vector<double> exploration::locate_alien(std::vector<int> rover_position, s
         if((rover_position[0] + delta_x) <= xBound - 1 && (rover_position[1] + delta_y) <= xBound - 1){
         result.push_back(rover_position[0] + delta_x);
         result.push_back(rover_position[1] + delta_y);
+        
         }
         else {
             Serial.println(" will go out of range");
+            result.push_back(0);
+            result.push_back(0);
         }
     }
 
@@ -57,6 +58,7 @@ std::vector<double> exploration::locate_alien(std::vector<int> rover_position, s
         if((rover_position[0] - delta_x) >= 0 && (rover_position[1] - delta_y) >= 0 ){
             result.push_back(rover_position[0] - delta_x);
             result.push_back(rover_position[1] - delta_y);
+           
         }
         else {
             Serial.println(" will go out of range");
@@ -68,6 +70,7 @@ std::vector<double> exploration::locate_alien(std::vector<int> rover_position, s
         if((rover_position[0] + delta_y) <= xBound - 1 && (rover_position[1] - delta_y) >= 0 ){
             result.push_back(rover_position[0] + delta_y);
             result.push_back(rover_position[1] - delta_x);
+          
         }
         else {
             Serial.println(" will go out of range");
@@ -85,6 +88,7 @@ std::vector<double> exploration::locate_alien(std::vector<int> rover_position, s
         if((rover_position[0] - delta_y) >= 0 && (rover_position[1] + delta_x) <= xBound - 1 ){
         result.push_back(rover_position[0] - delta_y);
         result.push_back(rover_position[1] + delta_x);
+      
         }
         else {
             Serial.println(" will go out of range");

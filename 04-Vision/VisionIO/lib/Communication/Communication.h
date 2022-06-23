@@ -1,20 +1,25 @@
 #include <Wifi.h>
-#include<string>
-class Communication{
+#include <ArduinoWebsockets.h>
 
 
-    public:
-        void init_WiFi();
-        void reconnect_WiFi(unsigned long reconnectWifiPeriod, unsigned long& previousTime, bool& disconnectionHappened);
-        void rubbish_function_for_wifi_offline_mode();
-        void rubbish_function_after_wifi_reconnected(bool& disconnectionHappened);
+#ifndef COMMUNICATION_H
+#define COMMUNICATION_H
 
-        void server_connection(WiFiClient& client, bool &serverConnected);
-        void is_server_connected(bool& serverConnected, bool disconnectionHappened);
+using namespace websockets;
 
-        void listen_for_instr(WiFiClient& client, int* receivedInfo, String& received);
-        void send_alien_msg(WiFiClient& client, int alienIndex, float x, float y, String color, int count);
-        void send_coord_msg(WiFiClient& client, float x, float y);
-        void rubbish_function_for_wifi_online_mode(WiFiClient& client, float& x, float& y, int& i);
+void init_WiFi();
+void reconnect_WiFi(WebsocketsClient& client, unsigned long reconnectWifiPeriod, unsigned long& previousTime, bool& disconnectionHappened);
+void rubbish_function_for_wifi_offline_mode();
+void rubbish_function_after_server_reconnected(WebsocketsClient& client, bool& disconnectionHappened);
 
-};
+void server_connection(WebsocketsClient& client);
+void onMessageCallback(WebsocketsMessage message);
+void onEventsCallback(WebsocketsEvent event, String data);
+
+void send_coord_msg(WebsocketsClient& client, float x, float y, float t);
+void send_planned_coord_msg(WebsocketsClient& client, int px, int py);
+void send_alien_msg(WebsocketsClient& client, int alienIndex, float x, float y, String color, int count);
+void send_tower_msg(WebsocketsClient& client, float x, float y, float w, int count);
+// #void rubbish_function_for_wifi_online_mode(WebsocketsClient& client);
+void wifi_online_mode(WebsocketsClient& client);
+#endif

@@ -1,3 +1,5 @@
+// #ifndef NEW_INTEGRATION_H
+// #define NEW_INTEGRATION_H
 // #include <Arduino.h>
 // #include <SPI.h>
 // #include <bitset>
@@ -8,41 +10,68 @@
 // #include <vector>
 // #include <math.h>
 
-// class integration {
-
-//     public:
-
-//         //fpga();
-//         //exploration();
-//         integration();
-
-//         void start();
-
-//         //global variable
-//         bool fpga_loop(std::map<std::string, std::vector<double>>& colour_map);
+// #define xBound 11
+// #define yBound 17
 
 
-//         std::vector<double> locate_alien(std::vector<int> rover_position, std::vector<double> polar_coordinate, int current_car_altitude);
-//         int normal_round(double input);
-//         void listen_map_alien(std::vector<int> rover_position, int map[10][16], std::map<std::string, std::vector<double>> &alien_storage, std::vector<std::string> wrong_detect_alien, int current_car_altitude);
+// void start(void * param);
 
-//         //bool integration::FPGA_detection()
-//         void exploration_loop();
-    
-//     private:
-//         bool main_loop(int received, int special_code, std::map<std::string, std::vector<double>>& detected_alien_set);
+// typedef std::pair<int, int> Pair;
 
-        
-//         void distance_decode(std::string received_message, int &colour, int &distance);
+// typedef std::pair<double, std::pair<int, int>> pPair;
 
-//         // decode logic for pixel ::  "1"
-//         void pixel_decode(std::string received_message, int &colour, int &pixel);
+// struct cell {
+//     int parent_i, parent_j;
+//     // f = g + h
+//     double f, g, h;
+//     };
 
-//         // rotation function
-//         void pixel_rotation(int pixel, bool stop);
+// // global variable
 
-//         void drive_command(int relative_movement);
-//         std::vector<int> next_step(int map[10][16], std::vector<int> xHistory, std::vector<int> yHistory, int& movement);
-//         int relative_rotation(int original_car_angle, int target_angle );
-        
-// };
+// // User
+
+// bool execution_check();
+
+// void modeBegin(int select_message);
+
+// std::pair<std::string, std::vector<double>> getAlien_message();
+
+// std::vector<int> getLeave_position();
+
+// bool getcomplete_task();
+
+// void stopAllTask();
+
+// bool leaving_detected();
+
+// std::map<std::string, std::vector<double>> get_complete_alien_storage();
+
+// // Vision
+
+// bool fpga_loop(std::map<std::string, std::vector<double>> &colour_map, bool start_detection);
+
+// bool Vision_main_loop(int received, int special_code, std::map<std::string, std::vector<double>> &detected_alien_set, double& continue_rotate_angle, bool start_detection);
+
+// void exploration_loop(void * param);
+
+// void export_alien_location_map(void * param);
+
+// void listen_map_alien(std::vector<int> rover_position, int map[11][17], std::map<std::string, std::vector<double>> &alien_storage, std::vector<std::string> wrong_detect_alien, int current_car_altitude, bool start_detection);
+
+// //A-star
+
+// void move_to_dest(volatile int initial_car_altitude, Pair initial_position, Pair destination);
+
+// void aStar(void * param);
+
+// //Drive part
+
+// void pixel_rotation(int pixel, bool stop);
+
+// void drive_command(int relative_movement);
+
+// int relative_rotation(int original_car_angle, int target_angle);
+
+// void rotate_translate_drive_command(int relative_movement);
+
+// #endif

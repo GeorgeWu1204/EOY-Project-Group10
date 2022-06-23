@@ -392,10 +392,11 @@ end
 /////////////////////////////////////////////// HSV /////////////////////////////////////////////// 
 
 assign pink_detected = 
-( (150 < hue && hue < 180) &&  (90 < saturation && saturation < 120) && (200 < value))
-|| ((hue < 15 && hue >= 10) && (saturation < 125 && saturation > 100) && (value > 140))
-|| ((hue < 23 && hue >= 15) && (saturation < 100 && saturation > 70) && (value > 140))
-|| ((hue < 10) && (saturation < 110 && saturation > 50) && (value > 80));
+(6 < hue && hue < 21) && (135 < saturation  && saturation < 220) && (170 < value);
+// ( (150 < hue && hue < 180) &&  (90 < saturation && saturation < 120) && (200 < value))
+// || ((hue < 15 && hue >= 10) && (saturation < 125 && saturation > 100) && (value > 140))
+// || ((hue < 23 && hue >= 15) && (saturation < 100 && saturation > 70) && (value > 140))
+// || ((hue < 10) && (saturation < 110 && saturation > 50) && (value > 80));
 
 assign orange_detected = 
 ( ((hue >= 11 && hue <= 15) && (value > 155 && saturation > 150)) 
@@ -405,7 +406,7 @@ assign orange_detected =
 // assign green_detected = ((hue >= 50 && hue <= 75) && (saturation > 105 && value >= 25 )) || ((hue >= 50 && hue <= 75) && ((saturation > 127 && value > 173)))
 // ||  ((hue > 40 && hue < 90) && ( 10 < value && value < 80) && (saturation > 30));
 
-assign green_detected = (44 < hue && hue < 60.3) && (144 < saturation && saturation < 203) && (value > 124); 
+assign green_detected = (44 < hue && hue < 62) && (144 < saturation && saturation < 204) && (value > 124); 
 // (55 < hue && hue < 70) && (saturation > 153) && (value > 175)
 // || (45 < hue <= 55) && (saturation > 125) && ();
 
@@ -413,13 +414,13 @@ assign red_detected = (hue <= 7 && saturation > 150 && value > 50)
 || ((hue < 360 && hue > 330) && (saturation > 150) && value > 50)
 || ((hue < 12 && hue > 7) && (saturation > 170) && value > 170);	
 
-assign cyan_detected = 0;
+assign cyan_detected = (23 < hue && hue < 80) && (28 < saturation && saturation < 179) && ( 44 < value && value < 70);
 
 assign black_detected = (value < 25);
 
-assign blue_detected = 0;
+assign blue_detected = (hue > 78 && hue < 130) && ( 84 < saturation && saturation < 140);
 
-assign yellow_detected = 0;
+assign yellow_detected = (26 < hue && hue < 31) && (123 < saturation && saturation < 219 ) && (value > 237);
 
 
 
