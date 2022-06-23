@@ -35,4 +35,12 @@ float getRoverPhi(bool degrees);
 
 void roverResetGlobalCoords();
 
+void roverSetGlobalCoords(float xSet, float ySet, float thetaSet);
+
+float roverDetectRadar();
+
+float roverGetSOC();
+
+float roverGetCurrent();
+
 #endif

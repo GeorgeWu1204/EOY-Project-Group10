@@ -68,10 +68,30 @@ void sampling(){
   
 }
 
-
-
 void pwm_modulate(float pwm_input){ // PWM function
-  analogWrite(6,(int)(255-pwm_input*255)); 
+  analogWrite(6,(int)(pwm_input)); 
+}
+
+void SD_fn(){
+
+  SDprint = String(dutyref/255) + "," + String(vb0) + "," + String(iL0) + "," + String(iL0*vb0);
+  
+  Serial.println(SDprint); 
+
+  File dataFile = SD.open("SD_Test.csv", FILE_WRITE);
+
+  if (dataFile){ 
+    
+    dataFile.println(SDprint); 
+
+  } 
+  else {
+
+    Serial.println("File not open"); 
+
+  }
+  dataFile.close(); 
+
 }
 
 void setup() {
@@ -79,6 +99,29 @@ void setup() {
   //Basic pin setups
 
   Serial.begin(115200);
+
+  //Check for the SD Card
+
+  Serial.println("\nInitializing SD card...");
+
+  if (!SD.begin(chipSelect)) {
+
+    Serial.println("* is a card inserted?");
+
+    while (true) {} //It will stick here FOREVER if no SD is in on boot
+
+  } else {
+
+    Serial.println("Wiring is correct and a card is present.");
+
+  }
+
+  if (SD.exists("SD_Test.csv")) { // Wipe the datalog when starting
+
+    SD.remove("SD_Test.csv");
+    Serial.println("Wiring is correct and a card is present, rewriting-----------");
+
+  }
   
   noInterrupts(); //disable all interrupts
   pinMode(13, OUTPUT);  //Pin13 is used to time the loops of the controller
@@ -113,25 +156,15 @@ void setup() {
     
     // Sample all of the measurements and check which control mode we are in
     sampling();
-    //Serial.println(iL);
-    CL_mode = digitalRead(3); // input from the OL_CL switch
-    Boost_mode = digitalRead(2); // input from the Buck_Boost switch
-
-          current_limit = 2; // 
-          oc = iL-current_limit; // Calculate the difference between current measurement and current limit
-          if ( oc > 0) {
-            open_loop=open_loop+0.001; // We are above the current limit so less duty cycle
-          } else {
-            open_loop=open_loop-0.001; // We are below the current limit so more duty cycle
-          }
-          open_loop=saturation(open_loop,0.99,dutyref); // saturate the duty cycle at the reference or a min of 0.01
-          pwm_modulate(open_loop); // and send it out
-          Serial.println(open_loop);
-          Serial.println(iL*vb);
     
+    pwm_modulate(dutyref); // and send it out
+  
+    // closed loop control path
 
     digitalWrite(13, LOW);   // reset pin13.
     loopTrigger = 0;
+
+    SD_fn();
   }
 }
 

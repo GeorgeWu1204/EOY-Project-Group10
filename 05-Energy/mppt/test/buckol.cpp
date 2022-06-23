@@ -79,7 +79,6 @@ void pwm_modulate(float pwm_input){ // PWM function
   analogWrite(6,(int)(255-pwm_input*255)); 
 }
 
-
 void setup() {
 
   //Basic pin setups
@@ -92,8 +91,8 @@ void setup() {
 
   // TimerA0 initialization for control-loop interrupt.
   
-  TCA0.SINGLE.PER = 999; //
-  TCA0.SINGLE.CMP1 = 999; //
+  TCA0.SINGLE.PER = 9999; //
+  TCA0.SINGLE.CMP1 = 9999; //
   TCA0.SINGLE.CTRLA = TCA_SINGLE_CLKSEL_DIV16_gc | TCA_SINGLE_ENABLE_bm; //16 prescaler, 1M.
   TCA0.SINGLE.INTCTRL = TCA_SINGLE_CMP1_bm; 
 
@@ -107,6 +106,7 @@ void setup() {
   Wire.begin(); // We need this for the i2c comms for the current sensor
   ina219.init(); // this initiates the current sensor
   Wire.setClock(700000); // set the comms speed for i2c
+  Serial.begin(115200);
   
 }
 
@@ -115,31 +115,22 @@ void setup() {
     
     digitalWrite(13, HIGH);   // set pin 13. Pin13 shows the time consumed by each control cycle. It's used for debugging.
     
-    // Sample all of the measurements and check which control mode we are in
     sampling();
-    CL_mode = digitalRead(3); // input from the OL_CL switch
-    Boost_mode = digitalRead(2); // input from the Buck_Boost switch
 
-    if (Boost_mode){
-      if (CL_mode) { //Closed Loop Boost
-          pwm_modulate(1); // This disables the Boost as we are not using this mode
-      }else{ // Open Loop Boost
-          pwm_modulate(1); // This disables the Boost as we are not using this mode
-      }
-    }else{      
-      if (CL_mode) { // Closed Loop Buck
-          pwm_modulate(0); // This disables the Buck as we are not using this mode
-      }else{ // Open Loop Buck
-          current_limit = 3; // Buck has a higher current limit
-          oc = iL-current_limit; // Calculate the difference between current measurement and current limit
-          if ( oc > 0) {
-            open_loop=open_loop-0.001; // We are above the current limit so less duty cycle
-          } else {
-            open_loop=open_loop+0.001; // We are below the current limit so more duty cycle
-          }
-          open_loop=saturation(open_loop,dutyref,0.02); // saturate the duty cycle at the reference or a min of 0.01
-          pwm_modulate(open_loop); // and send it out
-      }
+    
+    current_limit = 3; // Buck has a higher current limit
+    oc = iL-current_limit; // Calculate the difference between current measurement and current limit
+    if ( oc > 0) {
+      open_loop=open_loop-0.001; // We are above the current limit so less duty cycle
+    } else {
+      open_loop=open_loop+0.001; // We are below the current limit so more duty cycle
+    }
+      open_loop=saturation(open_loop,dutyref,0); // saturate the duty cycle at the reference or a min of 0.01
+      pwm_modulate(open_loop); // and send it out
+      Serial.println(open_loop);
+    }
+
+    if (vpd)
     }
     // closed loop control path
 
