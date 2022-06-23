@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "..\\..\\..\\..\\..\\.."
+		},
+		{
+			"name": "EOY Version6",
+			"path": "..\\..\\..\\..\\..\\..\\..\\EOY Version6\\EOY Version6"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"map": "cpp"
+		}
+	}
+}

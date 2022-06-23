@@ -14,23 +14,29 @@
 // decode logic for distance :: "0"
 void fpga::distance_decode(std::string received_message, int &colour, int &distance)
 {
-  colour = std::stoi(received_message.substr(1, 3));
-  if (received_message.at(4) == '1')
+  colour = std::stoi(received_message.substr(1, 4));
+  if (received_message.at(5) == '1')
   {
     // distance case :: nothing is detected;
     distance = 0;
   }
   else
   {
-    distance = std::stoi(received_message.substr(4, 15));
+    distance = std::stoi(received_message.substr(5, 15));
   }
 }
 // decode logic for pixel ::  "1"
 void fpga::pixel_decode(std::string received_message, int &colour, int &pixel)
 {
-  colour = std::stoi(received_message.substr(1, 3));
-  pixel = std::stoi(received_message.substr(4, 15));
+  Serial.println("PIXEL");
+  colour = std::stoi(received_message.substr(1, 4));
+  Serial.println(colour);
+  Serial.println(received_message.substr(5, 15).c_str());
+  pixel = std::stoi(received_message.substr(5, 15));
+  Serial.println(pixel);
+  Serial.println("finish pixel_decode ");
 }
+
 
 
 #endif
