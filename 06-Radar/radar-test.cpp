@@ -1,3 +1,6 @@
+// Group 10
+// Written by Feng Shen Foo, Weizheng Wang
+
 #include <Arduino.h>
 #include <vector>
 #include <cmath>
@@ -52,22 +55,23 @@ void loop() {
 
   if (sample){
 
-    signal_amplitude = analogRead(RADAR_PIN);
+    signal_amplitude = analogRead(RADAR_PIN)*3.3/4095;
     
     moving_average = movingAverage(v, signal_amplitude);
 
     Serial.println("signal amplitude : " + String(signal_amplitude));
+    Serial.println("moving_average : " + String(moving_average));
 
-    if (signal_amplitude > 4){
+    if (moving_average > 1){
 
-      //Serial.println("Underground power station detected");
+      Serial.println("Underground power station detected");
 
       digitalWrite(DETECTED_PIN, HIGH);
   
     }
     else {
 
-      //Serial.println("Locating fan......");
+      Serial.println("Locating fan......");
 
       digitalWrite(DETECTED_PIN, LOW);
 
