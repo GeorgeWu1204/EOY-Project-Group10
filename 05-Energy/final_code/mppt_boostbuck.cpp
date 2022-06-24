@@ -1,3 +1,6 @@
+// Group 10
+// Written by Feng Shen Foo, Weizheng Wang
+
 #include <Arduino.h>
 #include <string.h>
 #include <Wire.h>

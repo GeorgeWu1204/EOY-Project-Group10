@@ -1,3 +1,6 @@
+// Group 10
+// Written by Feng Shen Foo, Weizheng Wang
+
 #include <Wire.h>
 #include <INA219_WE.h>
 
