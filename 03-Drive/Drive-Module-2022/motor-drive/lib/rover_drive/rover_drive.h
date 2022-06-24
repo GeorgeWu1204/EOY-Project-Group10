@@ -1,6 +1,3 @@
-// Group 10
-// Written by Weizheng Wang, Feng Shen Foo
-
 #ifndef ROVER_DRIVE_H
 #define ROVER_DRIVE_H
 
@@ -45,5 +42,7 @@ float roverDetectRadar();
 float roverGetSOC();
 
 float roverGetCurrent();
+
+void readCapacity(); 
 
 #endif

@@ -1,8 +1,6 @@
 //------------------------
 // DRIVE SUBSYSTEM LIBRARY
 //------------------------
-// Group 10
-// Written by Weizheng Wang, Feng Shen Foo
 
 #include <Arduino.h>
 #include <SPI.h>
@@ -44,8 +42,8 @@ float dphi; // rover local phi angle change
 
 int squal;  // surface quality seen by optical flow sensor
 
-float opticalFlowScale = 0.18; // conversion factor from unit optical flow to millimeters
-float distanceToCenter = 127.7; // distance from optical flow sensor to rover rotation center
+float opticalFlowScale = 0.2; // conversion factor from unit optical flow to millimeters
+float distanceToCenter = 120; // distance from optical flow sensor to rover rotation center
 
 float Pphi = 1;   // P gain for angle control during translation
 float Pr = 0.01;  // P gain for distance control during rotation
@@ -154,7 +152,7 @@ int max_pix;
 #include <numeric>
 
 #define RADAR_PIN 32 // A4
-#define CURRENT_PIN 33 // A3
+#define CURRENT_PIN 33 // A5
 
 float radar_amplitude;
 std::vector<float> radar_vector(10);
@@ -290,14 +288,12 @@ void driveStart(void * pvParameters) {  // set up drive subsystem
 void readCapacity() {
 
   roverCurrent = (analogRead(CURRENT_PIN)*0.37);
-  roverCapacity -= roverCurrent*Ts/1000;
+  roverCapacity -= roverCurrent*Ts;
   roverSOC = roverCapacity/batteryCapacity*100;
 
 }
 
 void measure() {  // take optical flow sensor measurements
-
-    readCapacity();
 
     mousecam_read_motion();
 
@@ -772,7 +768,7 @@ void roverSetGlobalCoords(float xSet, float ySet, float thetaSet) {
 
 float roverDetectRadar() {
 
-  if (radar_average < 0.1) return 0;
+  if (radar_average < 0.5) return 0;
   else return radar_average;
 
 }
