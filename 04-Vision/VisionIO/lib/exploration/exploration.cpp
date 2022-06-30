@@ -17,82 +17,80 @@ exploration::exploration(){
     #define yBound 17
 }
 
-std::vector<double> exploration::locate_alien(std::vector<int> rover_position, std::vector<double> polar_coordinate, int current_car_altitude)
+
+//-------
+double transfer_x(double x, double y, double tilt){
+    return x * cos( M_PI * tilt / 180) - y * sin( M_PI * tilt / 180);
+}
+double transfer_y(double x, double y, double tilt){
+    return x * sin( M_PI * tilt / 180) + y * cos( M_PI * tilt / 180);
+}
+
+
+
+// be carefull on the sign of the rover rotation
+std::vector<double> exploration::locate_alien(std::vector<int> rover_position, std::vector<double> polar_coordinate, int current_car_altitude, float offset)
 {
     double distance = polar_coordinate[0];
-    double tilt_angle = polar_coordinate[1];
+    double tilt_angle = polar_coordinate[1] + offset;
     double delta_x = 0.0;
     double delta_y = 0.0;
     delta_x = (distance/20) * sin(PI * tilt_angle / 180);
     delta_y = (distance/20) * cos(PI * tilt_angle / 180);
+    
     std::vector<double> result;
     if(current_car_altitude == 10){
-        Serial.println(" ");
-        Serial.print("polar distance: ");
-        Serial.print(distance);
-        Serial.print(", ");
-        Serial.println(tilt_angle);
-        Serial.println("car altitude up");
-        Serial.print("current car location ------>>>>");
-        Serial.print(rover_position[0]);
-        Serial.print(", ");
-        Serial.println(rover_position[1]);
-        Serial.print(delta_x);
-        Serial.print(", ");
-        Serial.println(delta_y);
+        Serial.println("car altitude down 1 UP");
+        // if((rover_position[0] + delta_x) <= xBound - 1 && (rover_position[1] + delta_y) <= xBound - 1){
+        // result.push_back(rover_position[0] + delta_x);
+        // result.push_back(rover_position[1] + delta_y);
+        result.push_back(transfer_x(rover_position[0] + delta_x, rover_position[1] + delta_y, offset));
+        result.push_back(transfer_y(rover_position[0] + delta_x, rover_position[1] + delta_y, offset));
 
-        if((rover_position[0] + delta_x) <= xBound - 1 && (rover_position[1] + delta_y) <= xBound - 1){
-        result.push_back(rover_position[0] + delta_x);
-        result.push_back(rover_position[1] + delta_y);
         
-        }
-        else {
-            Serial.println(" will go out of range");
-            result.push_back(0);
-            result.push_back(0);
-        }
+        // }
+        // else {
+        //     Serial.println(" will go out of range");
+        //     result.push_back(0);
+        //     result.push_back(0);
+        // }
     }
 
     else if(current_car_altitude ==11 ){
         Serial.println("car altitude down 11 down");
-        if((rover_position[0] - delta_x) >= 0 && (rover_position[1] - delta_y) >= 0 ){
-            result.push_back(rover_position[0] - delta_x);
-            result.push_back(rover_position[1] - delta_y);
-           
-        }
-        else {
-            Serial.println(" will go out of range");
-        }
+        // if((rover_position[0] - delta_x) >= 0 && (rover_position[1] - delta_y) >= 0 ){
+            // result.push_back(rover_position[0] - delta_x);
+            // result.push_back(rover_position[1] - delta_y);
+        result.push_back(transfer_x(rover_position[0] - delta_x, rover_position[1] - delta_y, offset));
+        result.push_back(transfer_y(rover_position[0] - delta_x, rover_position[1] - delta_y, offset));
+        //}
     }
 
     else if(current_car_altitude == 12){
         Serial.println("car altitude right 12 right");
-        if((rover_position[0] + delta_y) <= xBound - 1 && (rover_position[1] - delta_y) >= 0 ){
-            result.push_back(rover_position[0] + delta_y);
-            result.push_back(rover_position[1] - delta_x);
+        //if((rover_position[0] + delta_y) <= xBound - 1 && (rover_position[1] - delta_y) >= 0 ){
+            // result.push_back(rover_position[0] + delta_y);
+            // result.push_back(rover_position[1] - delta_x);
+        result.push_back(transfer_x(rover_position[0] + delta_y, rover_position[1] - delta_x, offset));
+        result.push_back(transfer_y(rover_position[0] + delta_y, rover_position[1] - delta_x, offset));
           
-        }
-        else {
-            Serial.println(" will go out of range");
-        }
+        //}
     }
 
 
     else if(current_car_altitude == 13){
-        Serial.println("car altitude left 13 left");
-        Serial.println("rover position");
-        Serial.print(rover_position[0]);
-        Serial.print(", ");
-        Serial.println(rover_position[1]);
+         Serial.println("car altitude left 13 left");
+        // Serial.println("rover position");
+        // Serial.print(rover_position[0]);
+        // Serial.print(", ");
+        // Serial.println(rover_position[1]);
 
-        if((rover_position[0] - delta_y) >= 0 && (rover_position[1] + delta_x) <= xBound - 1 ){
-        result.push_back(rover_position[0] - delta_y);
-        result.push_back(rover_position[1] + delta_x);
-      
-        }
-        else {
-            Serial.println(" will go out of range");
-        }
+        //if((rover_position[0] - delta_y) >= 0 && (rover_position[1] + delta_x) <= xBound - 1 ){
+        // result.push_back(rover_position[0] - delta_y);
+        // result.push_back(rover_position[1] + delta_x);
+        result.push_back(transfer_x(rover_position[0] - delta_y, rover_position[1] + delta_x, offset));
+        result.push_back(transfer_y(rover_position[0] - delta_y, rover_position[1] + delta_x, offset));
+        //}
     }
     
     return result;

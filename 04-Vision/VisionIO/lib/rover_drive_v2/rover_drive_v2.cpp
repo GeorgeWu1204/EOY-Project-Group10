@@ -17,7 +17,8 @@ enum roverstate { // rover state machine
   rotationToTarget,     // rotate rover to given angle
   translationToTarget,  // translate rover to given distance
   rotationBack,         // rotate rover back to previous angle
-  movementToTarget      // move rover to xy-coordinate
+  movementToTarget,     // move rover to xy-coordinate
+  lookingAtTarget       // look in the direction of a given coordinate
 
 };
 
@@ -42,15 +43,17 @@ float dphi; // rover local phi angle change
 
 int squal;  // surface quality seen by optical flow sensor
 
-float opticalFlowScale = 0.2; // conversion factor from unit optical flow to millimeters
-float distanceToCenter = 120; // distance from optical flow sensor to rover rotation center
+const float opticalFlowScale = 0.084; // conversion factor from unit optical flow to millimeters
+const float distanceToCenter = 126; // distance from optical flow sensor to rover rotation center
 
-float Pphi = 1;   // P gain for angle control during translation
+float Pphi = 3;  // P gain for angle control during translation
 float Pr = 0.01;  // P gain for distance control during rotation
 
 volatile int sgn;       // sign of direction of rover movement
 volatile float target;  // movement target
 volatile float speed;   // movement speed
+
+float omega0 = 0; // speed offset
 
 volatile float target2; // second target variable
 volatile float speed2;  // second speed variable
@@ -63,9 +66,9 @@ SemaphoreHandle_t driveSemaphore; // semaphore handle to check for movement comp
 
 int Ts = 20; // sampling time in milliseconds
 
-#define SQUALPIN 26 // debug pin, LED lights up when surface quality is low
+/*#define SQUALPIN 26 // debug pin, LED lights up when surface quality is low
 #define STOPPIN 25  // debug pin, all rover movements are stopped when button is pressed
-#define TIMEPIN 33  // debug pin, goes high when drive subsystem us using core resources
+#define TIMEPIN 33  // debug pin, goes high when drive subsystem us using core resources*/
 
 float principalAngle(float angle) { // convert angle to principal angle
 
@@ -73,16 +76,21 @@ float principalAngle(float angle) { // convert angle to principal angle
 
 }
 
+float roverCurrent;
+int roverSOC;
+const float batteryCapacity = 18000000;
+float roverCapacity = batteryCapacity;
+
 //---------------------------------------------------------------------------
 // ESP32 pins, parameters and addresses of optical flow sensor, DO NOT CHANGE
 //---------------------------------------------------------------------------
 
-#define PIN_SS      5
-#define PIN_MISO    19
-#define PIN_MOSI    23
-#define PIN_SCK     18
+#define PIN_SS      5 // D7
+#define PIN_MISO    19 // D5
+#define PIN_MOSI    23 // D2
+#define PIN_SCK     18 // D6
 
-#define PIN_MOUSECAM_RESET  22
+#define PIN_MOUSECAM_RESET  32 // A2
 #define PIN_MOUSECAM_CS     5
 
 #define ADNS3080_PIXELS_X   30
@@ -131,13 +139,36 @@ int max_pix;
 // ESP32 pins of H-bridge for motor control, DO NOT CHANGE
 //--------------------------------------------------------
 
-#define PWMA  17
-#define AI1   21
-#define AI2   16
+#define PWMA  2 // D13
+#define AI1   33 // A3
+#define AI2   4 // D11
 
-#define PWMB  2
-#define BI1   4
-#define BI2   27
+#define PWMB  25 // A2
+#define BI1   27 // A0
+#define BI2   26 // A1
+
+//----------------
+// Radar subsystem
+//----------------
+
+#include <vector>
+#include <numeric>
+
+// #define RADAR_PIN 32 // A4
+// #define CURRENT_PIN 33 // A3
+
+float radar_amplitude;
+std::vector<float> radar_vector(10);
+float radar_average;
+
+float movingAverage (std::vector<float> &moving_sum, float input) {
+
+  moving_sum.erase(moving_sum.begin());
+  moving_sum.push_back(input);
+  
+  return accumulate(moving_sum.begin(), moving_sum.end(), 0.0)/10;
+
+}
 
 //--------------------------------------------------------------
 // Optical flow sensor functions already provided, DO NOT CHANGE
@@ -234,14 +265,17 @@ void driveStart(void * pvParameters) {  // set up drive subsystem
   pinMode(BI1, OUTPUT);
   pinMode(BI2, OUTPUT);
 
-  pinMode(SQUALPIN, OUTPUT);
+  /*pinMode(SQUALPIN, OUTPUT);
   pinMode(STOPPIN, INPUT_PULLUP);
-  pinMode(TIMEPIN, OUTPUT);
+  pinMode(TIMEPIN, OUTPUT);*/
 
   ledcSetup(1,5000,12);
   ledcAttachPin(PWMA,1);
   ledcSetup(2,5000,12);
   ledcAttachPin(PWMB,2);
+
+  int configb = mousecam_read_reg(ADNS3080_CONFIGURATION_BITS);
+  mousecam_write_reg(ADNS3080_CONFIGURATION_BITS, configb | 0x10);
 
   int econfig = mousecam_read_reg(ADNS3080_EXTENDED_CONFIG);
   mousecam_write_reg(ADNS3080_EXTENDED_CONFIG, econfig | 0x01);
@@ -249,11 +283,25 @@ void driveStart(void * pvParameters) {  // set up drive subsystem
   driveSemaphore = xSemaphoreCreateBinary();
   xSemaphoreGive(driveSemaphore);
 
+  radar_vector.resize(10, 0);
+
+  // pinMode(CURRENT_PIN, INPUT);
+
   vTaskDelete(driveStartTask);
 
 }
 
+// void readCapacity() {
+
+//   roverCurrent = (analogRead(CURRENT_PIN)*0.37);
+//   roverCapacity -= roverCurrent*Ts/1000;
+//   roverSOC = roverCapacity/batteryCapacity*100;
+
+// }
+
 void measure() {  // take optical flow sensor measurements
+
+    //readCapacity();
 
     mousecam_read_motion();
 
@@ -272,6 +320,9 @@ void measure() {  // take optical flow sensor measurements
     phi += dphi;
 
     squal = squalreg*4;
+
+    //radar_amplitude = analogRead(RADAR_PIN)*3.3/4095;
+    //radar_average = movingAverage(radar_vector, radar_amplitude);
 
 }
 
@@ -359,8 +410,8 @@ void translateToTarget(float rtarget, float v) {  // translate to target distanc
 
 void rotateToTarget(float phitarget, float omega) { // rotate to target angle
 
-  motorA(sgn*(-omega)-Pr*r);
-  motorB(sgn*omega-Pr*r);
+  motorA(sgn*(-omega-omega0)-Pr*r);
+  motorB(sgn*(omega+omega0)-Pr*r);
 
   if (sgn*(phi+dphi-phitarget) > 0) {
 
@@ -368,6 +419,8 @@ void rotateToTarget(float phitarget, float omega) { // rotate to target angle
 
     r = 0;
     phi = 0;
+
+    omega0 = 0;
 
     xSemaphoreGive(driveSemaphore);
     state = idle;
@@ -428,7 +481,7 @@ void drive(void * pvParameters) {  // main loop for drive subsystem, ran at each
 
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
-    digitalWrite(TIMEPIN, HIGH);
+    // digitalWrite(TIMEPIN, HIGH);
 
     measure();
 
@@ -466,9 +519,13 @@ void drive(void * pvParameters) {  // main loop for drive subsystem, ran at each
       moveToTarget(target,target2,speed,speed2);
       break;
 
+      case lookingAtTarget:
+      rotateToTarget(target,speed);
+      break;
+
     }
 
-    if (digitalRead(STOPPIN) == LOW) {
+    /*if (digitalRead(STOPPIN) == LOW) {
 
       brake();
 
@@ -489,7 +546,7 @@ void drive(void * pvParameters) {  // main loop for drive subsystem, ran at each
 
     }
 
-    digitalWrite(TIMEPIN, LOW);
+    digitalWrite(TIMEPIN, LOW);*/
 
   }
 
@@ -501,11 +558,11 @@ void drive(void * pvParameters) {  // main loop for drive subsystem, ran at each
 
 void roverBegin() { // set up rover tasks on core
 
-  xTaskCreatePinnedToCore(driveStart, "start", 10000, NULL, 2, &driveStartTask, 1); // setup task
+  xTaskCreatePinnedToCore(driveStart, "start", 10000, NULL, 2, &driveStartTask, 0); // setup task
 
   delay(50);  // wait for setup task to complete
 
-  xTaskCreatePinnedToCore(drive, "drive", 10000, NULL, 1, &driveTask, 1); // loop task
+  xTaskCreatePinnedToCore(drive, "drive", 10000, NULL, 1, &driveTask, 0); // loop task
 
 }
 
@@ -668,9 +725,6 @@ void roverMoveToTarget(float xtarget, float ytarget, float v, float omega) {
 
     state = movementToTarget;
 
-    Serial.println(target);
-    Serial.println(target2);
-
   }
 
 }
@@ -712,5 +766,52 @@ void roverResetGlobalCoords() {
   x = 0;
   y = 0;
   theta = 0;
+
+}
+
+void roverSetGlobalCoords(float xSet, float ySet, float thetaSet) {
+
+  x = xSet;
+  y = ySet;
+  theta = thetaSet;
+
+}
+
+float roverDetectRadar() {
+
+  if (radar_average < 0.1) return 0;
+  else return radar_average;
+
+}
+
+float roverGetSOC() {
+
+  return roverSOC;
+
+}
+
+float roverGetCurrent() {
+
+  return roverCurrent;
+
+}
+
+void roverLookAtTarget(float xtarget, float ytarget, float omega) {
+
+  if (xSemaphoreTake(driveSemaphore, (TickType_t) 0) == pdTRUE) {
+
+    target = principalAngle(std::atan2(ytarget-y, xtarget-x)-theta);
+    speed = omega;
+
+    if (target < 0) {
+      sgn = -1;
+    }
+    else {
+      sgn = 1;
+    }
+
+    state = lookingAtTarget;
+
+  }
 
 }

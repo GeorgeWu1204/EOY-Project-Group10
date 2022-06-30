@@ -44,8 +44,6 @@ void stopAllTask();
 
 bool leaving_detected();
 
-bool get_tower_detected();
-
 std::map<std::string, std::vector<double>> get_complete_alien_storage();
 
 // Vision

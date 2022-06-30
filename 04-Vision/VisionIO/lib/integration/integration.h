@@ -1,77 +1,83 @@
-// #ifndef NEW_INTEGRATION_H
-// #define NEW_INTEGRATION_H
-// #include <Arduino.h>
-// #include <SPI.h>
-// #include <bitset>
-// #include <map>
-// #include <bits/stdc++.h>
-// #include <string>
-// #include <iostream>
-// #include <vector>
-// #include <math.h>
+#ifndef NEW_INTEGRATION_H
+#define NEW_INTEGRATION_H
+#include <Arduino.h>
+#include <SPI.h>
+#include <bitset>
+#include <map>
+#include <bits/stdc++.h>
+#include <string>
+#include <iostream>
+#include <vector>
+#include <math.h>
 
-// #define xBound 11
-// #define yBound 17
+#define xBound 11
+#define yBound 17
 
 
-// void start(void * param);
+void start(void * param);
 
-// typedef std::pair<int, int> Pair;
+typedef std::pair<int, int> Pair;
 
-// typedef std::pair<double, std::pair<int, int>> pPair;
+typedef std::pair<double, std::pair<int, int>> pPair;
 
-// struct cell {
-//     int parent_i, parent_j;
-//     // f = g + h
-//     double f, g, h;
-//     };
+struct cell {
+    int parent_i, parent_j;
+    // f = g + h
+    double f, g, h;
+    };
 
-// // global variable
+// global variable
 
-// // User
+// User
 
-// bool execution_check();
+bool execution_check();
 
-// void modeBegin(int select_message);
+void modeBegin(int select_message);
 
-// std::pair<std::string, std::vector<double>> getAlien_message();
+std::pair<std::string, std::vector<double>> getAlien_message();
 
-// std::vector<int> getLeave_position();
+std::vector<int> getLeave_position();
 
-// bool getcomplete_task();
+bool getcomplete_task();
 
-// void stopAllTask();
+void stopAllTask();
 
-// bool leaving_detected();
+bool leaving_detected();
 
-// std::map<std::string, std::vector<double>> get_complete_alien_storage();
+bool get_tower_detected();
 
-// // Vision
+std::map<std::string, std::vector<double>> get_complete_alien_storage();
 
-// bool fpga_loop(std::map<std::string, std::vector<double>> &colour_map, bool start_detection);
+void battery_low_return();
 
-// bool Vision_main_loop(int received, int special_code, std::map<std::string, std::vector<double>> &detected_alien_set, double& continue_rotate_angle, bool start_detection);
+std::pair<int,int> returnCurrentPosition();
 
-// void exploration_loop(void * param);
+// Vision
 
-// void export_alien_location_map(void * param);
+bool fpga_loop(std::map<std::string, std::vector<double>> &colour_map, bool start_detection);
 
-// void listen_map_alien(std::vector<int> rover_position, int map[11][17], std::map<std::string, std::vector<double>> &alien_storage, std::vector<std::string> wrong_detect_alien, int current_car_altitude, bool start_detection);
+bool Vision_main_loop(int received, int special_code, std::map<std::string, std::vector<double>> &detected_alien_set, double& continue_rotate_angle, bool start_detection);
 
-// //A-star
+void exploration_loop(void * param);
 
-// void move_to_dest(volatile int initial_car_altitude, Pair initial_position, Pair destination);
+void export_alien_location_map(void * param);
 
-// void aStar(void * param);
+void listen_map_alien(std::vector<int> rover_position, int map[11][17], std::map<std::string, std::vector<double>> &alien_storage, std::vector<std::string> wrong_detect_alien, int current_car_altitude, bool start_detection);
 
-// //Drive part
+//A-star
 
-// void pixel_rotation(int pixel, bool stop);
+void move_to_dest(volatile int initial_car_altitude, Pair initial_position, Pair destination);
 
-// void drive_command(int relative_movement);
+void aStar(void * param);
 
-// int relative_rotation(int original_car_angle, int target_angle);
+//Drive part
 
-// void rotate_translate_drive_command(int relative_movement);
+void pixel_rotation(int pixel, bool stop);
 
-// #endif
+void drive_command(int relative_movement);
+
+int relative_rotation(int original_car_angle, int target_angle);
+
+void rotate_translate_drive_command(int relative_movement);
+
+#endif

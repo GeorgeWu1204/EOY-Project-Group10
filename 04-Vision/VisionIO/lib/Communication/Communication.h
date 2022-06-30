@@ -7,6 +7,9 @@
 
 using namespace websockets;
 
+inline WebsocketsClient client;
+inline int radarmode = 0;
+
 void init_WiFi();
 void reconnect_WiFi(WebsocketsClient& client, unsigned long reconnectWifiPeriod, unsigned long& previousTime, bool& disconnectionHappened);
 void rubbish_function_for_wifi_offline_mode();
@@ -18,8 +21,10 @@ void onEventsCallback(WebsocketsEvent event, String data);
 
 void send_coord_msg(WebsocketsClient& client, float x, float y, float t);
 void send_planned_coord_msg(WebsocketsClient& client, int px, int py);
-void send_alien_msg(WebsocketsClient& client, int alienIndex, float x, float y, String color, int count);
-void send_tower_msg(WebsocketsClient& client, float x, float y, float w, int count);
+void send_alien_msg(WebsocketsClient& client, float x, float y, String color, int count);
+void send_tower_msg(WebsocketsClient& client, int index, float x, float y, float w, int count);
+void send_radar_msg(WebsocketsClient& client, float x, float y, float intensity);
+
 // #void rubbish_function_for_wifi_online_mode(WebsocketsClient& client);
 void wifi_online_mode(WebsocketsClient& client);
 #endif

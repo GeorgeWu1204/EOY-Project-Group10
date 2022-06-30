@@ -367,6 +367,7 @@ end
 //-------------------------------------------------------------------- HSV --------------------------------------------------------------------
 assign pink_detected = 
 //(2 <= hue && hue <= 12) && (150 < saturation  && saturation < 200) && (108 < value && value < 255);
+// pass at top right corner.
 //hue 0.037 - 0.09 sat 0.537 - 0.818  value 0.761 - 1
 //hue 0.049 - 0.101 sat 0.535 - 0.776  value 0.969 - 1
 //hue 0.037 - 0.096 sat 0.561 - 0.776  value 0.945 - 1
@@ -383,14 +384,21 @@ assign pink_detected =
 //hue 0.011 - 0.065 sat 0..580 - 0.783 value 0.424 - 0.706
 //Jhome
 //hue 0.956 - 0.06  sat 0.239 - 0.559  value 0.486 - 0.741
-(((0 <= hue && hue <= 11)|| (177 <= hue  && hue <=180) )  && (95 <= saturation  && saturation <= 155) && (154 <= value && value <= 229))
-//((0 <= hue && hue <= 11)|| (178 <= hue  && hue <=180))  && (87 <= saturation  && saturation <= 155) && (154 <= value && value <= 229);
-|| ((6 <= hue && hue <= 17)  && (132 <= saturation  && saturation <= 211) && (248 <= value && value <= 255))
+(((0 <= hue && hue <= 11)|| (177 <= hue  && hue <=180) )  && (95 <= saturation  && saturation <= 155) && (154 <= value && value <= 229)) ||
+(((0 <= hue && hue <= 11)|| (178 <= hue  && hue <=180))  && (87 <= saturation  && saturation <= 155) && (154 <= value && value <= 229))
+ || ((6 <= hue && hue <= 17)  && (132 <= saturation  && saturation <= 211) && (248 <= value && value <= 255))
+ || ((7 <= hue && hue <= 27)  && (92 <= saturation  && saturation <= 177) && (247 <= value && value <= 255))
+ // || ((2 <= hue && hue <= 11)  && (162 <= saturation  && saturation <= 214) && (125 <= value && value <= 193))
+
+ 
+ ;
 //hue 0.034 - 0.092  sat 0.518 - 0.827 value 0.973 - 1
-|| ((7 <= hue && hue <= 27)  && (92 <= saturation  && saturation <= 177) && (247 <= value && value <= 255));
+//library for testing
+// (hue < 12 && hue >= 4) && (173 < saturation && saturation< 222) && (value > 149 && value < 255);
 
 
-assign white_detected = 
+
+assign white_detected =
 //home
 //(hue < 78 && hue >= 33) && (22< saturation && saturation< 98) && (value > 112 && value < 187);
 //lab
@@ -402,10 +410,15 @@ assign white_detected =
 //(hue < 50 && hue >= 33) && (71< saturation && saturation < 120 ) && (value > 161 && value < 240);
 //jhomehue 0.216 - 0.380  sat 0.169 - 0.365  value 0.569 - 0.788
 //(hue < 69 && hue >= 39) && (43< saturation && saturation < 93 ) && (value > 145 && value < 200);
+//chem
+//((hue < 54 && hue >= 28) && (80< saturation && saturation < 128) && (value > 158  && value < 221))
+//|| ((hue < 40 && hue >= 28) && (76< saturation && saturation < 124) && (value > 230  && value < 255))
+//|| ((hue < 49 && hue >= 32) && (84< saturation && saturation < 128) && (value > 192  && value < 255));
 
 
 assign green_detected =
 (44 < hue && hue < 65) && (97 < saturation && saturation < 200) && (value > 111); 
+//pass at top right corner
 //hue 0.184 - 0.322 sat 0.448 - 0.793  value 0.431 - 1
 //hue 0.256 - 0.354 sat 0.531 - 0.812  value 0.4 - 0.988
 //hue 0.293 - 0.353 sat 0.562 - 0.764  value 0.553 - 0.984
@@ -416,7 +429,9 @@ assign green_detected =
 //(57 <= hue && hue <= 73) && (138 <= saturation && saturation <= 205) && (value >= 98 && value <= 211); 
 
 assign red_detected = 
-((hue >= 6 && hue <= 13) && (saturation >= 170 && saturation <= 248) && (value > 130 && value <= 255));
+((hue >= 6 && hue <= 13) && (saturation >= 170 && saturation <= 248) && (value > 130 && value <= 255))
+|| (7 <= hue && hue <= 13) && (194 <= saturation && saturation <= 250) && (value >= 105 && value <= 164);
+//sunny
 //hue 0.038 - 0.074 sat 0.788 - 0.994  value 0.435 - 0.773
 //hue 0.034 - 0.1 sat 0.627 - 0.918  value 0.706 - 1
 //hue 0.034 - 0.075 sat 0.757 - 0.938  value 0.627 - 0.957
@@ -430,8 +445,11 @@ assign red_detected =
 //((hue >= 6 && hue <= 13) && (saturation >= 204 && saturation <= 248) && (value > 130 && value < 192));
 //jhome
 //(8 <= hue && hue <= 22) && (132 <= saturation && saturation <= 209) && (value >= 94 && value <= 174); 
+//cloudy hue 0.037 - 0.074 sat 0.762 - 0.979  value 0.412 - 0.639
+//library
+//(6 <= hue && hue <= 14) && (194 <= saturation && saturation <= 255) && (value >= 97 && value <= 154); 
 
-assign black_detected =
+assign black_detected = 
 //Lab Home
 (hue < 177 && hue >= 0) && (0< saturation && saturation < 255) && (value > 15  && value < 57);
 //hue 0 - 0.958 sat 0 - 0.456 val 0.216 - 0.353
@@ -440,9 +458,20 @@ assign black_detected =
 //(hue < 177 && hue >= 0) && (0< saturation && saturation < 187) && (value > 29  && value < 81);
 //jhome
 //(hue < 177 && hue >= 0) && (0< saturation && saturation < 187) && (value > 29  && value < 81);
+//chem 
+//(hue < 177 && hue >= 0) && (0< saturation && saturation < 160) && (value > 29  && value < 60);
 
-assign blue_detected = 
-( hue >= 80 && hue <= 125) && (  saturation >= 50 && saturation <= 188) && (27 <= value && value < 124);
+assign blue_detected =
+// (( hue >= 80 && hue <= 125) && (  saturation >= 50 && saturation <= 188) && (27 <= value && value < 124))  // trial 1
+// || (( 172 > hue && hue > 0) && (saturation <= 162) && (36 < value && value < 71))
+// || (( 165 > hue && hue > 0) && (saturation <= 38) && (28 < value && value < 36))
+// || (90 <= hue && hue <= 111) && (76 <= saturation && saturation <= 208) && (value >= 63 && value <= 114); // trial 1
+//fail at top right corner
+//Cloudy
+//hue 0 - 0.958  sat 0 - 0.636  value 0.141 - 0.278//fail at top right corner
+//hue 0 - 0.917  sat 0 - 0.147  value 0.110 - 0.137
+
+//Sunny
 //hue 0.133 - 0.581 sat 0.032 - 0.465  value 0.310 - 0.510
 //hue 0.236 - 0.690 sat 0.122 - 0.534  value 0.208 - 0.443
 //hue 0.000 - 0.958 sat 0.000 - 0.404  value 0.176 - 0.655
@@ -454,8 +483,27 @@ assign blue_detected =
 //jhome
 //(90 <= hue && hue <= 111) && (76 <= saturation && saturation <= 208) && (value >= 63 && value <= 114); 
 
+//Demo
+(( hue >= 80 && hue <= 123) && (  saturation >= 40 && saturation <= 117) && (41 <= value && value < 122))  // trial 1
+|| (90 <= hue && hue <= 130) && (40 <= saturation && saturation <= 215) && (value >= 10 && value <= 150); // trial 1
+
+
+
 assign cyan_detected = 
-(51 < hue && hue <= 76) && ( 61 < saturation && saturation <= 136) && ( 79 <= value && value < 161);
+ ((51 < hue && hue <= 76) && ( 61 < saturation && saturation <= 136) && ( 79 <= value && value < 161))
+ || ((0 < hue && hue <= 165) && ( 0 < saturation && saturation <= 165) && ( 29 <= value && value < 66))
+ || (71 <= hue && hue <= 97) && (101 <= saturation && saturation <= 204) && (value >= 59 && value <= 101); 
+
+
+//fail at top right corner
+//(37 <= hue && hue <= 111) && (76 <= saturation && saturation <= 208) && (value >= 63 && value <= 114);  // trial 1
+
+// (37 <= hue && hue <= 80) && (43 <= saturation && saturation <= 117) && (value >= 10 && value <= 122)||
+// (44 <= hue && hue <= 78) && (37 <= saturation && saturation <= 130) && (value >= 10 && value <= 110);
+
+
+//h//hue 0.205 - 0.425 sat 0.184 - 0.588 valule 0.180 - 0.588
+//ue 0 - 0.917  sat 0 - 0.636  value 0.141 - 0.278
 //hue 0.19 - 0.4 sat 0.226 - 0.719  value 0.165 - 0.522
 //hue 0.257 - 0.423 sat 0.261 - 0.6  value 0.239 - 0.576
 //BAD hue 0.280 - 0.477 sat 0.238 - 0.635  value 0.165 - 0.400
@@ -463,8 +511,8 @@ assign cyan_detected =
 //jhome
 //(71 <= hue && hue <= 97) && (101 <= saturation && saturation <= 204) && (value >= 59 && value <= 101); 
 
-assign yellow_detected =
-(27 <= hue && hue < 34) && (130 < saturation && saturation < 225 ) && (value > 146);
+assign yellow_detected = (27 <= hue && hue < 34) && (130 < saturation && saturation < 225 ) && (value > 146);
+// pass at 9:40 top right corner
 //hue 0.124 - 0.169 sat 0.510 - 0.920  value 0.898 - 1
 //hue 0.149 - 0.169 sat 0.498 - 0.818  value 0.839 - 1
 //hue 0.148 - 0.170 sat 0.447 - 0.874  value 0.757 - 1
@@ -494,13 +542,11 @@ assign color_high  =
 						(white_final_detected) ? {24'hf0f0f0} :  //white
 						(black_final_detected) ? (24'h0a0006) :
 						(red_final_detected) ? {24'hff0000} :
-						//(red_final_detected) ? {24'hff0000} : 
 						(green_final_detected) ? {24'h59e02c} :
 						(pink_final_detected) ? {24'hff005d} :
 						(cyan_final_detected) ? (24'h2fbd9f):
 						(yellow_final_detected) ? (24'hede26f):
 						(blue_final_detected) ? (24'h6151f4):						
-			
 						{grey, grey, grey};
 
 // Show bounding box
@@ -531,7 +577,7 @@ assign bb_active_blue = (x == left_blue && left_blue != IMAGE_W-11'h1) || (x == 
 assign bb_bound = 	(x==40) || (x==80) || (x==120) || (x==160) || (x==200) || (x==240) || (x==280) || (x==320) || (x==360) ||
 					(x==400) || (x==440) || (x==480) || (x==520) || (x==560) || (x==600) || (x==640); 
 
-assign bb_active_b =    
+assign bb_active_b = 
 (x ==  f_slot_1_blackToWhite && f_slot_1_blackToWhite != 0) || 
 (x ==  f_slot_2_blackToWhite && f_slot_2_blackToWhite != 0) || 
 (x ==  f_slot_3_blackToWhite && f_slot_3_blackToWhite != 0) || 
@@ -805,6 +851,7 @@ reg [10:0]  slot_1_count_wb, slot_2_count_wb, slot_3_count_wb, slot_4_count_wb, 
 reg [4:0] center_slot, left_slot, right_slot;
 
 parameter bwb_threshold = 50; //counting threshold 24
+parameter upper_bwb_threshold = 30; //counting threshold 24
 
 reg [10:0]	f_slot_1_blackToWhite, f_slot_9_blackToWhite,
 			f_slot_2_blackToWhite, f_slot_10_blackToWhite,
@@ -826,7 +873,14 @@ reg [10:0]	f_slot_1_whiteToBlack, f_slot_9_whiteToBlack,
 
 reg [4:0] count_w_b, count_b_w;
 reg [10:0] left_most_bound, right_most_bound;
-//TODO : 
+reg [10:0] difference_bound;
+//Differentiating two buildings
+reg [8:0] estimate_blank_val;
+reg [3:0] suspect_blank_start_slot, suspect_blank_end_slot, continuous_edge; 
+// left_most ------ suspect_blank_start_slot           suspect_blank_end_slot ------- right_most
+reg two_buildings_detected;
+reg left_building_detected, right_building_detected;
+
 
 
 always @(posedge clk) begin
@@ -897,23 +951,34 @@ always @(posedge clk) begin
 		slot_16_whiteToBlack <= 0;
 
 
-		f_slot_1_blackToWhite <= slot_1_blackToWhite; f_slot_9_blackToWhite  <= slot_9_blackToWhite;
-		f_slot_2_blackToWhite <= slot_2_blackToWhite; f_slot_10_blackToWhite <= slot_10_blackToWhite;
-		f_slot_3_blackToWhite <= slot_3_blackToWhite; f_slot_11_blackToWhite <= slot_11_blackToWhite;
-		f_slot_4_blackToWhite <= slot_4_blackToWhite; f_slot_12_blackToWhite <= slot_12_blackToWhite; 
-		f_slot_5_blackToWhite <= slot_5_blackToWhite; f_slot_13_blackToWhite <= slot_13_blackToWhite;
-		f_slot_6_blackToWhite <= slot_6_blackToWhite; f_slot_14_blackToWhite <= slot_14_blackToWhite;
-		f_slot_7_blackToWhite <= slot_7_blackToWhite; f_slot_15_blackToWhite <= slot_15_blackToWhite;
-		f_slot_8_blackToWhite <= slot_8_blackToWhite; f_slot_16_blackToWhite <= slot_16_blackToWhite;
+		f_slot_1_blackToWhite <= (slot_1_count_bw >= upper_bwb_threshold)? slot_1_blackToWhite : 0; f_slot_9_blackToWhite  <= (slot_9_count_bw  >= upper_bwb_threshold)? slot_9_blackToWhite  : 0;
+		f_slot_2_blackToWhite <= (slot_2_count_bw >= upper_bwb_threshold)? slot_2_blackToWhite : 0; f_slot_10_blackToWhite <= (slot_10_count_bw >= upper_bwb_threshold)? slot_10_blackToWhite : 0;
+		f_slot_3_blackToWhite <= (slot_3_count_bw >= upper_bwb_threshold)? slot_3_blackToWhite : 0; f_slot_11_blackToWhite <= (slot_11_count_bw >= upper_bwb_threshold)? slot_11_blackToWhite : 0;
+		f_slot_4_blackToWhite <= (slot_4_count_bw >= upper_bwb_threshold)? slot_4_blackToWhite : 0; f_slot_12_blackToWhite <= (slot_12_count_bw >= upper_bwb_threshold)? slot_12_blackToWhite : 0; 
+		f_slot_5_blackToWhite <= (slot_5_count_bw >= upper_bwb_threshold)? slot_5_blackToWhite : 0; f_slot_13_blackToWhite <= (slot_13_count_bw >= upper_bwb_threshold)? slot_13_blackToWhite : 0;
+		f_slot_6_blackToWhite <= (slot_6_count_bw >= upper_bwb_threshold)? slot_6_blackToWhite : 0; f_slot_14_blackToWhite <= (slot_14_count_bw >= upper_bwb_threshold)? slot_14_blackToWhite : 0;
+		f_slot_7_blackToWhite <= (slot_7_count_bw >= upper_bwb_threshold)? slot_7_blackToWhite : 0; f_slot_15_blackToWhite <= (slot_15_count_bw >= upper_bwb_threshold)? slot_15_blackToWhite : 0;
+		f_slot_8_blackToWhite <= (slot_8_count_bw >= upper_bwb_threshold)? slot_8_blackToWhite : 0; f_slot_16_blackToWhite <= (slot_16_count_bw >= upper_bwb_threshold)? slot_16_blackToWhite : 0;
 
-		f_slot_1_whiteToBlack <= slot_1_whiteToBlack; f_slot_9_whiteToBlack  <= slot_9_whiteToBlack;
-		f_slot_2_whiteToBlack <= slot_2_whiteToBlack; f_slot_10_whiteToBlack <= slot_10_whiteToBlack;
-		f_slot_3_whiteToBlack <= slot_3_whiteToBlack; f_slot_11_whiteToBlack <= slot_11_whiteToBlack;
-		f_slot_4_whiteToBlack <= slot_4_whiteToBlack; f_slot_12_whiteToBlack <= slot_12_whiteToBlack; 
-		f_slot_5_whiteToBlack <= slot_5_whiteToBlack; f_slot_13_whiteToBlack <= slot_13_whiteToBlack;
-		f_slot_6_whiteToBlack <= slot_6_whiteToBlack; f_slot_14_whiteToBlack <= slot_14_whiteToBlack;
-		f_slot_7_whiteToBlack <= slot_7_whiteToBlack; f_slot_15_whiteToBlack <= slot_15_whiteToBlack;
-		f_slot_8_whiteToBlack <= slot_8_whiteToBlack; f_slot_16_whiteToBlack <= slot_16_whiteToBlack;
+		f_slot_1_whiteToBlack <= (slot_1_count_wb >= upper_bwb_threshold)? slot_1_whiteToBlack : 0; f_slot_9_whiteToBlack  <=  (slot_9_count_wb >= upper_bwb_threshold)? slot_9_whiteToBlack : 0;
+		f_slot_2_whiteToBlack <= (slot_2_count_wb >= upper_bwb_threshold)? slot_2_whiteToBlack : 0; f_slot_10_whiteToBlack <=  (slot_10_count_wb >= upper_bwb_threshold)? slot_10_whiteToBlack: 0;
+		f_slot_3_whiteToBlack <= (slot_3_count_wb >= upper_bwb_threshold)? slot_3_whiteToBlack : 0; f_slot_11_whiteToBlack <=  (slot_11_count_wb >= upper_bwb_threshold)? slot_11_whiteToBlack: 0;
+		f_slot_4_whiteToBlack <= (slot_4_count_wb >= upper_bwb_threshold)? slot_4_whiteToBlack : 0; f_slot_12_whiteToBlack <=  (slot_12_count_wb >= upper_bwb_threshold)? slot_12_whiteToBlack: 0; 
+		f_slot_5_whiteToBlack <= (slot_5_count_wb >= upper_bwb_threshold)? slot_5_whiteToBlack : 0; f_slot_13_whiteToBlack <=  (slot_13_count_wb >= upper_bwb_threshold)? slot_13_whiteToBlack: 0;
+		f_slot_6_whiteToBlack <= (slot_6_count_wb >= upper_bwb_threshold)? slot_6_whiteToBlack : 0; f_slot_14_whiteToBlack <=  (slot_14_count_wb >= upper_bwb_threshold)? slot_14_whiteToBlack: 0;
+		f_slot_7_whiteToBlack <= (slot_7_count_wb >= upper_bwb_threshold)? slot_7_whiteToBlack : 0; f_slot_15_whiteToBlack <=  (slot_15_count_wb >= upper_bwb_threshold)? slot_15_whiteToBlack: 0;
+		f_slot_8_whiteToBlack <= (slot_8_count_wb >= upper_bwb_threshold)? slot_8_whiteToBlack : 0; f_slot_16_whiteToBlack <=  (slot_16_count_wb >= upper_bwb_threshold)? slot_16_whiteToBlack: 0;
+
+		//Differentiating two buildings
+		estimate_blank_val <= 0;
+		continuous_edge <= 0; 
+		suspect_blank_start_slot <= 0;
+		suspect_blank_end_slot <= 16;
+		// two_buildings_detected <= 0;
+		// left_building_detected <= 0;
+		// right_building_detected <= 0;
+
+		 
 	end
 	else begin 
 			if(0<x && x<=40) begin // pure or
@@ -923,7 +988,7 @@ always @(posedge clk) begin
 						slot_1_count_bw <= 1;
 						slot_1_blackToWhite <= 0;
 					end
-				else if(slot_1_count_bw <= bwb_threshold) begin
+					else if(slot_1_count_bw <= bwb_threshold) begin
 						if(((x >= slot_1_bw_tmp) && (x-slot_1_bw_tmp <= 5) )||((x < slot_1_bw_tmp) && (slot_1_bw_tmp - x <= 5)))begin 
 							slot_1_count_bw <= slot_1_count_bw + 3;
 						end
@@ -951,6 +1016,8 @@ always @(posedge clk) begin
 						count_w_b <= count_w_b + 1;
 					end
 				end
+				
+				// at the beginning , don't care about blank.
 			end 
 			else if(40<x && x<=80) begin  
 				if(blackToWhite && blackToWhite_1) begin
@@ -1004,6 +1071,7 @@ always @(posedge clk) begin
 					else if((slot_3_count_bw > bwb_threshold) && (slot_3_blackToWhite != slot_3_bw_tmp)) begin
 						slot_3_blackToWhite <= slot_3_bw_tmp;
 						count_b_w <= count_b_w + 1;
+						
 					end
 				end 
 				else if(whiteToBlack && whiteToBlack_1) begin
@@ -1021,8 +1089,16 @@ always @(posedge clk) begin
 					else if((slot_3_count_wb > bwb_threshold) && (slot_3_whiteToBlack != slot_3_wb_tmp)) begin
 						slot_3_whiteToBlack <= slot_3_wb_tmp;
 						count_w_b <= count_w_b + 1;
+						
 					end
 				end
+				// else begin
+				// 	//Differentiating two buildings
+				// 	continuous_edge <= continuous_edge + 1;
+				// 	if(continuous_edge > 0 && suspect_blank_start_slot == 0 && (count_b_w > 0 || count_w_b > 0))begin
+				// 		suspect_blank_start_slot <= 3;
+				// 	end
+				// end
 			end
 			else if(120<x && x<=160) begin 
 				if(blackToWhite && blackToWhite_1) begin
@@ -1040,7 +1116,19 @@ always @(posedge clk) begin
 					else if((slot_4_count_bw > bwb_threshold) && (slot_4_blackToWhite != slot_4_bw_tmp)) begin
 						slot_4_blackToWhite <= slot_4_bw_tmp;
 						count_b_w <= count_b_w + 1;
+						// if( suspect_blank_start_slot == 0 && (count_b_w > 0 || count_w_b > 0))begin
+					 	// 	suspect_blank_start_slot <= 4;
+						// end
+						// else if(4 - suspect_blank_start_slot < 2 && suspect_blank_start_slot != 0)begin
+						// 	suspect_blank_start_slot <= 4;
+						// end
 					end
+					//Differentiating two buildings
+					// continuous_edge <= 0;
+					// if(suspect_blank_start_slot > 0)begin
+					// 	suspect_blank_end_slot <= 4;
+					// end
+					
 				end 
 				else if(whiteToBlack && whiteToBlack_1) begin
 					if(slot_4_count_wb == 0) begin 
@@ -1057,8 +1145,26 @@ always @(posedge clk) begin
 					else if((slot_4_count_wb > bwb_threshold) && (slot_4_whiteToBlack != slot_4_wb_tmp)) begin
 						slot_4_whiteToBlack <= slot_4_wb_tmp;
 						count_w_b <= count_w_b + 1;
+						// if( suspect_blank_start_slot == 0 && (count_b_w > 0 || count_w_b > 0))begin
+					 	// 	suspect_blank_start_slot <= 4;
+						// end
+						// else if(4 - suspect_blank_start_slot < 2 && suspect_blank_start_slot != 0)begin
+						// 	suspect_blank_start_slot <= 4;
+						// end
 					end
+					//Differentiating two buildings
+					// continuous_edge <= 0;
+					// if(suspect_blank_start_slot > 0)begin
+					// 	suspect_blank_end_slot <= 4;
+					// end
 				end
+				//else begin
+					//Differentiating two buildings
+					// continuous_edge <= continuous_edge + 1;
+					// if(continuous_edge == 1 && suspect_blank_start_slot == 0 && (count_b_w > 0 || count_w_b > 0))begin
+					// 	suspect_blank_start_slot <= 4;
+					// end
+				//end
 			end
 			else if(160<x && x<=200) begin 
 				if(blackToWhite && blackToWhite_1) begin
@@ -1077,8 +1183,22 @@ always @(posedge clk) begin
 					else if((slot_5_count_bw > bwb_threshold) && (slot_5_blackToWhite != slot_5_bw_tmp)) begin
 						slot_5_blackToWhite <= slot_5_bw_tmp;
 						count_b_w <= count_b_w + 1;
+						// if( suspect_blank_start_slot == 0 && (count_b_w > 0 || count_w_b > 0))begin
+					 	// 	suspect_blank_start_slot <= 5;
+						// end
+						// else if(5 - suspect_blank_start_slot < 2 && suspect_blank_start_slot != 0)begin
+						// 	suspect_blank_start_slot <= 5;
+						// end
+						// else if (5 - suspect_blank_start_slot >= 2 && suspect_blank_end_slot != 0)begin
+						// 	suspect_blank_end_slot <= 5;
+						// end
 					end
-				end 
+					//Differentiating two buildings
+					// continuous_edge <= 0;
+					// if(suspect_blank_start_slot > 0)begin
+					// 	suspect_blank_end_slot <= 5;
+					// end
+				end
 				else if(whiteToBlack && whiteToBlack_1) begin
 					if(slot_5_count_wb == 0) begin 
 						slot_5_whiteToBlack <= 0;
@@ -1094,8 +1214,23 @@ always @(posedge clk) begin
 					else if((slot_5_count_wb > bwb_threshold) && (slot_5_whiteToBlack != slot_5_wb_tmp)) begin
 						slot_5_whiteToBlack <= slot_5_wb_tmp;
 						count_w_b <= count_w_b + 1;
+						// if( suspect_blank_start_slot == 0 && (count_b_w > 0 || count_w_b > 0))begin
+					 	// 	suspect_blank_start_slot <= 5;
+						// end
+						// else if(5 - suspect_blank_start_slot < 2 && suspect_blank_start_slot != 0)begin
+						// 	suspect_blank_start_slot <= 5;
+						// end
+						// else if (5 - suspect_blank_start_slot >= 2 && suspect_blank_end_slot != 0)begin
+						// 	suspect_blank_end_slot <= 5;
+						// end
 					end
+					//Differentiating two buildings
+					// continuous_edge <= 0;
+					// if(suspect_blank_start_slot > 0)begin
+					// 	suspect_blank_end_slot <= 5;
+					// end
 				end
+				
 			end
 			else if(200<x && x<=240) begin 
 				if(blackToWhite && blackToWhite_1) begin
@@ -1113,7 +1248,21 @@ always @(posedge clk) begin
 					else if((slot_6_count_bw > bwb_threshold) && (slot_6_blackToWhite != slot_6_bw_tmp)) begin
 						slot_6_blackToWhite <= slot_6_bw_tmp;
 						count_b_w <= count_b_w + 1;
+						// if( suspect_blank_start_slot == 0 && (count_b_w > 0 || count_w_b > 0))begin
+					 	// 	suspect_blank_start_slot <= 6;
+						// end
+						// else if(6 - suspect_blank_start_slot < 2 && suspect_blank_start_slot != 0)begin
+						// 	suspect_blank_end_slot <= 6;
+						// end
+						// else if (6 - suspect_blank_start_slot >= 2 && suspect_blank_end_slot != 0)begin
+						// 	suspect_blank_end_slot <= 6;
+						// end
 					end
+					//Differentiating two buildings
+					// continuous_edge <= 0;
+					// if(suspect_blank_start_slot > 0)begin
+					// 	suspect_blank_end_slot <= 6;
+					// end
 				end 
 				else if(whiteToBlack && whiteToBlack_1) begin
 					if(slot_6_count_wb == 0) begin 
@@ -1131,7 +1280,21 @@ always @(posedge clk) begin
 						slot_6_whiteToBlack <= slot_6_wb_tmp;
 						count_w_b <= count_w_b + 1;
 					end
+					//Differentiating two buildings
+					// continuous_edge <= 0;
+					// if(suspect_blank_start_slot > 0)begin
+					// 	suspect_blank_end_slot <= 6;
+					// end
+					
 				end
+				else begin
+						//Differentiating two buildings
+						// continuous_edge <= continuous_edge + 1;
+						// if(continuous_edge > 0 && suspect_blank_start_slot == 0 && (count_b_w > 0 || count_w_b > 0))begin
+						// 	suspect_blank_start_slot <= 6;
+						// end
+				end
+
 			end
 			else if(240<x && x<=280) begin 
 				if(blackToWhite && blackToWhite_1) begin
@@ -1151,6 +1314,12 @@ always @(posedge clk) begin
 						slot_7_blackToWhite <= slot_7_bw_tmp;
 						count_b_w <= count_b_w + 1;
 					end
+					//Differentiating two buildings
+					// continuous_edge <= 0;
+					// if(suspect_blank_start_slot > 0)begin
+					// 	suspect_blank_end_slot <= 7;
+					// end
+
 				end 
 				else if(whiteToBlack) begin
 					if(slot_7_count_wb == 0) begin 
@@ -1168,6 +1337,19 @@ always @(posedge clk) begin
 						slot_7_whiteToBlack <= slot_7_wb_tmp;
 						count_w_b <= count_w_b + 1;
 					end
+					//Differentiating two buildings
+					// continuous_edge <= 0;
+					// if(suspect_blank_start_slot > 0)begin
+					// 	suspect_blank_end_slot <= 7;
+					// end
+
+				end
+				else begin
+						//Differentiating two buildings
+						// continuous_edge <= continuous_edge + 1;
+						// if(continuous_edge > 0 && suspect_blank_start_slot == 0 && (count_b_w > 0 || count_w_b > 0))begin
+						// 	suspect_blank_start_slot <= 7;
+						// end
 				end
 			end
 			else if(280<x && x<=320) begin 
@@ -1187,6 +1369,11 @@ always @(posedge clk) begin
 						slot_8_blackToWhite <= slot_8_bw_tmp;
 						count_b_w <= count_b_w + 1;
 					end
+					//Differentiating two buildings
+					// continuous_edge <= 0;
+					// if(suspect_blank_start_slot > 0)begin
+					// 	suspect_blank_end_slot <= 8;
+					// end
 				end 
 				else if(whiteToBlack && whiteToBlack_1) begin
 					if(slot_8_count_wb == 0) begin 
@@ -1206,6 +1393,7 @@ always @(posedge clk) begin
 						slot_8_whiteToBlack <= slot_8_wb_tmp;
 						count_w_b <= count_w_b + 1;
 					end
+					
 				end
 			end
 			else if(320<x && x<=360) begin 
@@ -1225,6 +1413,8 @@ always @(posedge clk) begin
 						slot_9_blackToWhite <= slot_9_bw_tmp;
 						count_b_w <= count_b_w + 1;
 					end
+					
+
 				end 
 				else if(whiteToBlack && whiteToBlack_1) begin
 					if(slot_9_count_wb == 0) begin 
@@ -1244,7 +1434,9 @@ always @(posedge clk) begin
 						slot_9_whiteToBlack <= slot_9_wb_tmp;
 						count_w_b <= count_w_b + 1;
 					end
+					
 				end
+				
 
 			end
 			else if(360<x && x<=400) begin 
@@ -1265,6 +1457,11 @@ always @(posedge clk) begin
 						slot_10_blackToWhite <= slot_10_bw_tmp;
 						count_b_w <= count_b_w + 1;
 					end
+					//Differentiating two buildings
+					// continuous_edge <= 0;
+					// if(suspect_blank_start_slot > 0)begin
+					// 	suspect_blank_end_slot <= 10;
+					// end
 				end 
 				else if(whiteToBlack && whiteToBlack_1) begin
 					if(slot_10_count_wb == 0) begin 
@@ -1283,6 +1480,18 @@ always @(posedge clk) begin
 						slot_10_whiteToBlack <= slot_10_wb_tmp;
 						count_w_b <= count_w_b + 1;
 					end
+					//Differentiating two buildings
+					// continuous_edge <= 0;
+					// if(suspect_blank_start_slot > 0)begin
+					// 	suspect_blank_end_slot <= 10;
+					// end
+				end
+				else begin
+						//Differentiating two buildings
+						// continuous_edge <= continuous_edge + 1;
+						// if(continuous_edge > 0 && suspect_blank_start_slot == 0 && (count_b_w > 0 || count_w_b > 0))begin
+						// 	suspect_blank_start_slot <= 10;
+						// end
 				end
 			end
 			else if(400<x && x<=440) begin 
@@ -1303,6 +1512,11 @@ always @(posedge clk) begin
 						slot_11_blackToWhite <= slot_11_bw_tmp;
 						count_b_w <= count_b_w + 1;
 					end
+					//Differentiating two buildings
+					// continuous_edge <= 0;
+					// if(suspect_blank_start_slot > 0)begin
+					// 	suspect_blank_end_slot <= 11;
+					// end
 				end 
 				else if(whiteToBlack && whiteToBlack_1) begin
 					if(slot_11_count_wb == 0) begin 
@@ -1321,6 +1535,7 @@ always @(posedge clk) begin
 						slot_11_whiteToBlack <= slot_11_wb_tmp;
 						count_w_b <= count_w_b + 1;
 					end
+					
 				end
 			end
 			else if(440<x && x<=480) begin 
@@ -1359,6 +1574,7 @@ always @(posedge clk) begin
 						slot_12_whiteToBlack <= slot_12_wb_tmp;
 						count_w_b <= count_w_b + 1;
 					end
+
 				end
 			end
 			else if(480<x && x<=520) begin 
@@ -1379,6 +1595,7 @@ always @(posedge clk) begin
 						slot_13_blackToWhite <= slot_13_bw_tmp;
 						count_b_w <= count_b_w + 1;
 					end
+					
 				end 
 				
 				else if(whiteToBlack && whiteToBlack_1) begin
@@ -1398,7 +1615,9 @@ always @(posedge clk) begin
 						slot_13_whiteToBlack <= slot_13_wb_tmp;
 						count_w_b <= count_w_b + 1;
 					end
+					
 				end
+				
 			end
 			else if(520<x && x<=560) begin 
 				if(blackToWhite && blackToWhite_1) begin
@@ -1418,6 +1637,7 @@ always @(posedge clk) begin
 						slot_14_blackToWhite <= slot_14_bw_tmp;
 						count_b_w <= count_b_w + 1;
 					end
+					
 				end 
 				else if(whiteToBlack && whiteToBlack_1) begin
 					if(slot_14_count_wb == 0) begin 
@@ -1436,6 +1656,7 @@ always @(posedge clk) begin
 						slot_14_whiteToBlack <= slot_14_wb_tmp;
 						count_w_b <= count_w_b + 1;
 					end
+					
 				end
 			end
 			else if(560<x && x<=600) begin 
@@ -1456,6 +1677,7 @@ always @(posedge clk) begin
 						slot_15_blackToWhite <= slot_15_bw_tmp;
 						count_b_w <= count_b_w + 1;
 					end
+					
 				end 
 				else if(whiteToBlack && whiteToBlack_1) begin
 					if(slot_15_count_wb == 0) begin 
@@ -1474,6 +1696,7 @@ always @(posedge clk) begin
 						slot_15_whiteToBlack <= slot_15_wb_tmp;
 						count_w_b <= count_w_b + 1;
 					end
+				
 				end
 			end	
 			else if(600<x && x<=640) begin 
@@ -1527,7 +1750,19 @@ always @(posedge clk) begin
 					(f_slot_9_blackToWhite != 0 || f_slot_9_whiteToBlack != 0) ? 9 : (f_slot_8_blackToWhite != 0 || f_slot_8_whiteToBlack != 0) ? 8 : (f_slot_7_blackToWhite != 0 || f_slot_7_whiteToBlack != 0) ? 7 :
 					(f_slot_6_blackToWhite != 0 || f_slot_6_whiteToBlack != 0) ? 6 : (f_slot_5_blackToWhite != 0 || f_slot_5_whiteToBlack != 0) ? 5 : (f_slot_4_blackToWhite != 0 || f_slot_4_whiteToBlack != 0) ? 4 :
 					(f_slot_3_blackToWhite != 0 || f_slot_3_whiteToBlack != 0) ? 3 : (f_slot_2_blackToWhite != 0 || f_slot_2_whiteToBlack != 0) ? 2 : 0;
-		center_slot = (left_slot + right_slot) >> 1;
+		if(~two_buildings_detected)begin
+			center_slot = (left_slot + right_slot) >> 1;
+		end
+		
+		else begin
+			//suspect_blank_start_slot = left_slot;
+			if(two_buildings_detected && (~left_building_detected))begin
+				center_slot = (left_slot + suspect_blank_start_slot) >> 1;
+			end
+			else if (two_buildings_detected && (~right_building_detected) && left_building_detected) begin
+				center_slot = ( suspect_blank_end_slot + right_slot ) >> 1;
+			end
+		end
 
 
 
@@ -1569,11 +1804,149 @@ always @(posedge clk) begin
 			15:	right_most_bound = (f_slot_15_blackToWhite >  f_slot_15_whiteToBlack) ? f_slot_15_blackToWhite : f_slot_15_whiteToBlack;
 
 		endcase
+
+
+
+
+		// differentiating two buildings
+
+		if (f_slot_3_blackToWhite || f_slot_3_whiteToBlack) begin
+			suspect_blank_start_slot = 3;
+		end
+		if (f_slot_4_blackToWhite || f_slot_4_whiteToBlack) begin
+			suspect_blank_start_slot = 4;
+		end
+		if (f_slot_5_blackToWhite || f_slot_5_whiteToBlack) begin
+			suspect_blank_start_slot = 5;
+		end
+
+		if (f_slot_6_blackToWhite || f_slot_6_whiteToBlack)begin
+			if( suspect_blank_start_slot == 0 )begin
+				suspect_blank_start_slot = 6;
+			end
+			else if(6 - suspect_blank_start_slot <= 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_start_slot = 6;
+			end
+			else if (6 - suspect_blank_start_slot > 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_end_slot = 6;
+			end
+		end
+		 
+		if (f_slot_7_blackToWhite || f_slot_7_whiteToBlack)begin
+			if( suspect_blank_start_slot == 0 )begin
+				suspect_blank_start_slot = 7;
+			end
+			else if(7 - suspect_blank_start_slot <= 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_start_slot = 7;
+			end
+			else if (7 - suspect_blank_start_slot > 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_end_slot = 7;
+			end
+		end
+
+		if (f_slot_8_blackToWhite || f_slot_8_whiteToBlack)begin
+			if( suspect_blank_start_slot == 0 )begin
+				suspect_blank_start_slot = 8;
+			end
+			else if(8 - suspect_blank_start_slot <= 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_start_slot = 8;
+			end
+			else if (8 - suspect_blank_start_slot > 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_end_slot = 8;
+			end
+		end
+
+		if (f_slot_9_blackToWhite || f_slot_9_whiteToBlack)begin
+			if( suspect_blank_start_slot == 0 )begin
+				suspect_blank_start_slot = 9;
+			end
+			else if(9 - suspect_blank_start_slot <= 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_start_slot = 9;
+			end
+			else if (9 - suspect_blank_start_slot > 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_end_slot = 9;
+			end
+		end
+
+		if (f_slot_10_blackToWhite || f_slot_10_whiteToBlack)begin
+			if( suspect_blank_start_slot == 0 )begin
+				suspect_blank_start_slot = 10;
+			end
+			else if(10 - suspect_blank_start_slot <= 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_start_slot = 10;
+			end
+			else if (10 - suspect_blank_start_slot > 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_end_slot = 10;
+			end
+		end
+		
+		if (f_slot_11_blackToWhite || f_slot_11_whiteToBlack)begin
+			if( suspect_blank_start_slot == 0 )begin
+				suspect_blank_start_slot = 11;
+			end
+			else if(11 - suspect_blank_start_slot <= 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_start_slot = 11;
+			end
+			else if (11 - suspect_blank_start_slot > 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_end_slot = 11;
+			end
+		end
+
+		if (f_slot_12_blackToWhite || f_slot_12_whiteToBlack)begin
+			if( suspect_blank_start_slot == 0 )begin
+				suspect_blank_start_slot = 12;
+			end
+			else if(12 - suspect_blank_start_slot <= 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_start_slot = 12;
+			end
+			else if (12 - suspect_blank_start_slot > 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_end_slot = 12;
+			end
+		end
+
+		if (f_slot_13_blackToWhite || f_slot_13_whiteToBlack)begin
+			if( suspect_blank_start_slot == 0 )begin
+				suspect_blank_start_slot = 13;
+			end
+			else if(13 - suspect_blank_start_slot <= 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_start_slot = 13;
+			end
+			else if (13 - suspect_blank_start_slot > 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_end_slot = 13;
+			end
+		end
+
+		if (f_slot_14_blackToWhite || f_slot_14_whiteToBlack)begin
+			
+			if (14 - suspect_blank_start_slot > 2 && suspect_blank_start_slot != 0)begin
+				suspect_blank_end_slot = 14;
+			end
+		
+		end
+
 		
 		
  	end
 
 end 
+
+always @(posedge clk)begin
+//two buildings detection
+//--------------- deciding left and right -----------------
+		 if (suspect_blank_end_slot < 14 ) begin
+			two_buildings_detected <= 1;
+		 end
+		 else begin
+			two_buildings_detected <= 0;
+		 end
+
+		 
+		 // until there is no two building exits.
+
+		if(~valid_b && ~valid_b_1 && ~valid_b_2 && ~valid_b_3 && moving_forward_b) begin 
+			 two_buildings_detected <= 0; 
+		end
+end
 
  
 
@@ -1895,11 +2268,9 @@ always@(posedge clk) begin
 				else if (blue_final_detected & in_valid ) begin
 					if (x < max_start_edge_x_position_blue) max_start_edge_x_position_blue <= x;
 					if (x > max_end_edge_x_position_blue) max_end_edge_x_position_blue <= x;
-				end
-
-			
+				end	
+			end
 		end
-	end
 //-----------------------------------------------------------
 // Column 
 //-----------------------------------------------------------
@@ -2467,8 +2838,96 @@ distance_cal blue_ball(
 	.distance(distance_blue_t) 
 );
 
+
+
+
+
+// buildiing_distance_cal left_building(
+// 	.clk(clk),
+// 	.center_slot(center_slot),
+//     .f_slot_7_blackToWhite(f_slot_7_blackToWhite),
+//     .f_slot_8_blackToWhite(f_slot_8_blackToWhite),
+//     .f_slot_9_blackToWhite(f_slot_9_blackToWhite),
+//     .f_slot_10_blackToWhite(f_slot_10_blackToWhite),
+
+// 	.f_slot_7_whiteToBlack(f_slot_7_whiteToBlack),
+//     .f_slot_8_whiteToBlack(f_slot_8_whiteToBlack),
+//     .f_slot_9_whiteToBlack(f_slot_9_whiteToBlack),
+//     .f_slot_10_whiteToBlack(f_slot_10_whiteToBlack),
+
+// 	.left_most_bound(left_most_bound),
+// 	.right_most_bound(right_most_bound),
+	
+//     .eop(eop),
+//     .valid(valid_b),
+//     .formate(formate_b),
+//     .target_center_x_pixel(black_center_x_pixel),
+//     .distance(distance_b_t),
+
+// 	.slot_7(slot_7),
+//     .slot_8(slot_8),
+//    	.slot_9(slot_9),
+//    	.slot_10(slot_10),
+// 	.left_slot(left_slot),
+// 	.right_slot(right_slot),
+
+//     .slot_7_WB(slot_7_WB),
+//     .slot_8_WB(slot_8_WB),
+//     .slot_9_WB(slot_9_WB),
+//     .slot_10_WB(slot_10_WB),
+
+// 	.stripe_width(stripe_width),
+// 	.diameter(tower_diameter_t)
+// );
+
+
+// buildiing_distance_cal right_building(
+// 	.clk(clk),
+// 	.center_slot(center_slot),
+//     .f_slot_7_blackToWhite(f_slot_7_blackToWhite),
+//     .f_slot_8_blackToWhite(f_slot_8_blackToWhite),
+//     .f_slot_9_blackToWhite(f_slot_9_blackToWhite),
+//     .f_slot_10_blackToWhite(f_slot_10_blackToWhite),
+
+// 	.f_slot_7_whiteToBlack(f_slot_7_whiteToBlack),
+//     .f_slot_8_whiteToBlack(f_slot_8_whiteToBlack),
+//     .f_slot_9_whiteToBlack(f_slot_9_whiteToBlack),
+//     .f_slot_10_whiteToBlack(f_slot_10_whiteToBlack),
+
+// 	.left_most_bound(left_most_bound),
+// 	.right_most_bound(right_most_bound),
+	
+//     .eop(eop),
+//     .valid(valid_b),
+//     .formate(formate_b),
+//     .target_center_x_pixel(black_center_x_pixel),
+//     .distance(distance_b_t),
+
+// 	.slot_7(slot_7),
+//     .slot_8(slot_8),
+//    	.slot_9(slot_9),
+//    	.slot_10(slot_10),
+// 	.left_slot(left_slot),
+// 	.right_slot(right_slot),
+
+//     .slot_7_WB(slot_7_WB),
+//     .slot_8_WB(slot_8_WB),
+//     .slot_9_WB(slot_9_WB),
+//     .slot_10_WB(slot_10_WB),
+
+// 	.stripe_width(stripe_width),
+// 	.diameter(tower_diameter_t)
+// );
+
+
+
+
+
+
+
 wire [10:0] c_1, c_2, c_3, c_4, c_5, c_6, c_7, c_8;
 reg selected_r, selected_p, selected_w, selected_b, selected_g, selected_c, selected_y, selected_blue;
+reg selected_b_l, selected_b_r;
 reg [3:0] data_colour; 
 reg moving_forward_r, moving_forward_p, moving_forward_g, moving_forward_w, moving_forward_b, moving_forward_c, moving_forward_y, moving_forward_blue;
 reg detection_request;
@@ -2476,11 +2935,11 @@ reg detection_request;
 
 // minmum distance;
 assign c_1 = (valid_r && ~selected_r)? distance_r : 11'b111111111111;
-assign c_2 = (0 && distance_p < c_1 && ~selected_p) ? distance_p : c_1;
+assign c_2 = (valid_p && distance_p < c_1 && ~selected_p) ? distance_p : c_1;
 assign c_3 = (valid_g && distance_g < c_2 && ~selected_g) ? distance_g : c_2;
-assign c_4 = (valid_w && distance_w < c_3 && ~selected_w) ? distance_w : c_3;
-assign c_5 = (valid_b && distance_b < c_4 && ~selected_b) ? distance_b : c_4;
-assign c_6 = (valid_y && distance_y < c_5 && ~selected_y) ? distance_y : c_5;
+//assign c_4 = (valid_w && distance_w < c_3 && ~selected_w) ? distance_w : c_3;
+//assign c_5 = (valid_b && distance_b < c_4 && ~selected_b) ? distance_b : c_4;
+assign c_6 = (valid_y && distance_y < c_3 && ~selected_y) ? distance_y : c_3;
 assign c_7 = (valid_c && distance_c < c_6 && ~selected_c) ? distance_c : c_6;
 assign c_8 = (valid_blue && distance_blue < c_7 && ~selected_blue) ? distance_blue : c_7;
 
@@ -2524,24 +2983,29 @@ end
 always @(posedge clk) begin
 	//esp32 has successfully received red distance. red is now in the selected set
 
-	// unlock the target and block the target.
+		
+	// unblock 
 	if(message_from_ESP32 == 50) begin
 		moving_forward_r <= 1;
 		moving_forward_p <= 1;
 		moving_forward_g <= 1;
-		moving_forward_w <= 1;
-		moving_forward_b <= 1;
-        moving_forward_y <= 1;
+		moving_forward_y <= 1;
         moving_forward_c <= 1;
         moving_forward_blue <= 1;
 		detection_request <= 0;
+
+
+		moving_forward_w <= 1;
+		moving_forward_b <= 1;
+
+       
 	end
 	// 1 moving forward
 
 	//if(message_from_ESP32 == 21) moving_forward_wr_rotate <= 0;
 	// 0 rotate 
 	
-	else if(message_from_ESP32 == 30) begin
+	else if(message_from_ESP32 == 30) begin // block the corresponding colour  and unlock
 		selected_r <= 1;
 	end 
 	else if(message_from_ESP32 == 31) begin
@@ -2551,11 +3015,28 @@ always @(posedge clk) begin
 		selected_g <= 1;
 	end 
 	else if(message_from_ESP32 == 33) begin
-		selected_w <= 1;
+		selected_w <= 1; //Left
 	end 
 	else if(message_from_ESP32 == 34) begin
-		selected_b <= 1;
-	end 
+		if(two_buildings_detected)begin
+			
+			if(~left_building_detected)begin
+				left_building_detected <= 1;
+				//block left
+			end
+			else begin
+				if(~right_building_detected)begin
+					right_building_detected<= 1;
+					//block right
+					selected_b <= 1;
+				end
+			end
+		end
+		else begin
+			selected_b <= 1; // building detection comfirmation
+		end
+
+	end
     else if(message_from_ESP32 == 35) begin
 		selected_y <= 1;
 	end 
@@ -2606,10 +3087,26 @@ always @(posedge clk) begin
 			selected_w <= 0; 
 			moving_forward_w <= 0;
 		end 
+
+		//TODO:: place where things need to change block LR
 		if(~valid_b && ~valid_b_1 && ~valid_b_2 && ~valid_b_3 && moving_forward_b) begin 
 			selected_b <= 0; 
 			moving_forward_b <= 0;
+			left_building_detected <= 0;
+			right_building_detected <= 0;
 		end
+
+
+		// Left and Right
+		if(~valid_b && ~valid_b_1 && ~valid_b_2 && ~valid_b_3 && moving_forward_b) begin 
+			selected_b_l <= 0; 
+			moving_forward_b <= 0;
+		end
+		if(~valid_b && ~valid_b_1 && ~valid_b_2 && ~valid_b_3 && moving_forward_b) begin 
+			selected_b_r <= 0; 
+			moving_forward_b <= 0;
+		end
+		
 
         if(~valid_y && ~valid_y_1 && ~valid_y_2 && ~valid_y_3 && moving_forward_y)begin 
 			selected_y <= 0; 
@@ -2633,61 +3130,64 @@ always @(posedge clk)begin
 		data_colour <=  4'b1111;
 	end
 	else begin
-        // TODO::NOT enough bits
 		data_colour <=  (lock_r) ? 4'b000: 
 						(lock_p) ? 4'b001: 
 						(lock_g) ? 4'b010: 
-						(lock_w) ? 4'b011: 
-						(lock_b) ? 4'b100: 
+						// (lock_w) ? 4'b011: 
+						// (lock_b) ? 4'b100: 
                         (lock_y) ? 4'b101:
                         (lock_c) ? 4'b110:
                         (lock_blue) ? 4'b111:
 						(c_8 == distance_r && valid_r) ? 4'b000 :
 						(c_8 == distance_p && valid_p) ? 4'b001 :
 						(c_8 == distance_g && valid_g) ? 4'b010 :
-						(c_8 == distance_w && valid_w) ? 4'b011 :
-                        (c_8 == distance_b && valid_b) ? 4'b100 :
+						// (c_8 == distance_w && valid_w) ? 4'b011 :
+                        // (c_8 == distance_b && valid_b) ? 4'b100 :
                         (c_8 == distance_y && valid_y) ? 4'b101 :
                         (c_8 == distance_c && valid_c) ? 4'b110 :
-						(c_8 == distance_b && valid_blue) ? 4'b111 : 4'b1111;	
+						(c_8 == distance_blue && valid_blue) ? 4'b111 : 4'b1111;	
 	end				 
 end
+
+
+
 
 always @(*) begin
 	if(message_from_ESP32 == 10) begin
 		//0
-		message_to_ESP32 = {1'b0, 3'b100, 4'b0, slot_7_WB, slot_8_WB, slot_9_WB, slot_10_WB}; end 
+		//message_to_ESP32 = {1'b0, 3'b100, 4'b0, slot_7_WB, slot_8_WB, slot_9_WB, slot_10_WB}; end 
+		message_to_ESP32 = {1'b0, 3'b100, 7'b0, lock_blue, formate_blue}; end 
 	else if(message_from_ESP32 == 11)begin
 		//1
 		//message_to_ESP32 = {1'b0, 3'b001, 1'b0, y}; end
-		//message_to_ESP32 = {1'b0, 3'b001, 4'b0 ,valid_r, valid_p, valid_g, valid_w, valid_b, valid_y, valid_c, valid_blue}; end 
-		message_to_ESP32 = {1'b0, 5'b001, count_b_w,count_w_b}; end 
+		message_to_ESP32 = {1'b0, 3'b001, 4'b0 ,valid_r, valid_p, valid_g, valid_w, valid_b, valid_y, valid_c, valid_blue}; end 
+		//message_to_ESP32 = {1'b0, 5'b001, count_b_w,count_w_b}; end 
 	else if(message_from_ESP32 == 12) begin
 		//2
 		message_to_ESP32 = {1'b0, 3'b010, 4'b0, selected_r, selected_p, selected_g, selected_w, selected_b, selected_y, selected_c, selected_blue}; end 	
 	else if(message_from_ESP32 == 13) begin
 		//3
 		//message_to_ESP32 = {1'b0, 3'b100, 4'b0, moving_forward_r, moving_forward_p, moving_forward_g, moving_forward_w, moving_forward_b, moving_forward_y, moving_forward_c, moving_forward_blue};
-		message_to_ESP32 = {1'b0, 3'b000, 1'b0, distance_g}; end
+		message_to_ESP32 = {1'b0, 3'b000, 1'b0, distance_blue}; end
 	else if(message_from_ESP32 == 14) begin
 		//4
-		message_to_ESP32 = {1'b0, 3'b001, 1'b0, avg_left_g}; end
+		message_to_ESP32 = {1'b0, 3'b001, 1'b0, blue_center_x_pixel}; end
 	else if(message_from_ESP32 == 15) begin
 		//5
-		//message_to_ESP32 = {1'b0, data_colour, stripe_width}; end
-		message_to_ESP32 = {1'b0, 3'b010, 1'b0, avg_right_g}; end
+		message_to_ESP32 = {1'b0, data_colour, c_8}; end
+		//message_to_ESP32 = {1'b0, 3'b010, 1'b0, avg_right_g}; end
 	else if(message_from_ESP32 == 16) begin
 		//6
-		//message_to_ESP32 = {1'b0, left_slot, right_slot, center_slot }; end
-		message_to_ESP32 = {1'b0, 3'b100, 1'b0 , green_center_x_pixel}; end
+		message_to_ESP32 = {1'b0, left_slot, right_slot, center_slot }; end
+		//message_to_ESP32 = {1'b0, 3'b100, 1'b0 , black_center_x_pixel}; end
 		//black_center_x_pixel
 	else if(message_from_ESP32 == 17) begin
 		case(data_colour)
 			0 : message_to_ESP32 = (formate_r)? {1'b0, data_colour, distance_r}: {1'b1, data_colour, red_center_x_pixel};	 
-			//1 : message_to_ESP32 = (formate_p)? {1'b0, data_colour, distance_p}: {1'b1, data_colour, pink_center_x_pixel};
+			1 : message_to_ESP32 = (formate_p)? {1'b0, data_colour, distance_p}: {1'b1, data_colour, pink_center_x_pixel};
 			2 : message_to_ESP32 = (formate_g)? {1'b0, data_colour, distance_g}: {1'b1, data_colour, green_center_x_pixel};
-			3 : message_to_ESP32 = (formate_w)? {1'b0, data_colour, distance_w}: {1'b1, data_colour, white_center_x_pixel};
-			4 : message_to_ESP32 = (formate_b)? {1'b0, data_colour, distance_b}: {1'b1, data_colour, black_center_x_pixel};
+			// 3 : message_to_ESP32 = (formate_w)? {1'b0, data_colour, distance_w}: {1'b1, data_colour, white_center_x_pixel};
+			// 4 : message_to_ESP32 = (formate_b)? {1'b0, data_colour, distance_b}: {1'b1, data_colour, black_center_x_pixel};
             5 : message_to_ESP32 = (formate_y)? {1'b0, data_colour, distance_y}: {1'b1, data_colour, yellow_center_x_pixel};
             6 : message_to_ESP32 = (formate_c)? {1'b0, data_colour, distance_c}: {1'b1, data_colour, cyan_center_x_pixel};
             7 : message_to_ESP32 = (formate_blue)? {1'b0, data_colour, distance_blue}: {1'b1, data_colour, blue_center_x_pixel};
@@ -2695,9 +3195,7 @@ always @(*) begin
 			default : message_to_ESP32 = 16'b1111111111111111;
 		endcase 
 	end
-	else if(message_from_ESP32 == 18) begin
-		message_to_ESP32 = {1'b0, 4'b0, tower_diameter};
-	end
+	
 	else if (message_from_ESP32 == 70) begin
  		if(~selected_w  && ~selected_r && ~selected_p && ~selected_g && ~selected_b && ~selected_blue && ~selected_y && ~selected_c) begin
 			message_to_ESP32 = 16'd60;
@@ -2705,15 +3203,34 @@ always @(*) begin
 			message_to_ESP32 = 16'd70;
 		 end
 	end 
+	else if (message_from_ESP32 == 200)begin
+		if(valid_b && valid_b_1 && valid_b_2 && ~selected_b) begin
+			message_to_ESP32 = (formate_b)? {1'b0, data_colour, distance_b}: {1'b1, data_colour, black_center_x_pixel};
+		end
+		else begin
+			message_to_ESP32 = 16'b1111111111111111;
+		end
+	end
+	else if(message_from_ESP32 == 201) begin
+		message_to_ESP32 = {1'b0, 4'b0, tower_diameter};
+	end
+	else if(message_from_ESP32 == 202) begin
+		difference_bound = right_most_bound - left_most_bound;
+		message_to_ESP32 = {1'b0, 4'b0, difference_bound};
+	end
+	// else if(message_from_ESP32 == 203) begin
+	// 	message_to_ESP32 = {1'b0, 4'b0, right_most_bound};
+	// end
+
 	
 	else begin
 		 // TODO:: not enough bits
 		case(data_colour)
 			0 : message_to_ESP32 = (formate_r)? {1'b0, data_colour, distance_r}: {1'b1, data_colour, red_center_x_pixel};	 
-			//1 : message_to_ESP32 = (formate_p)? {1'b0, data_colour, distance_p}: {1'b1, data_colour, pink_center_x_pixel};
+			1 : message_to_ESP32 = (formate_p)? {1'b0, data_colour, distance_p}: {1'b1, data_colour, pink_center_x_pixel};
 			2 : message_to_ESP32 = (formate_g)? {1'b0, data_colour, distance_g}: {1'b1, data_colour, green_center_x_pixel};
-			3 : message_to_ESP32 = (formate_w)? {1'b0, data_colour, distance_w}: {1'b1, data_colour, white_center_x_pixel};
-			4 : message_to_ESP32 = (formate_b)? {1'b0, data_colour, distance_b}: {1'b1, data_colour, black_center_x_pixel};
+			// 3 : message_to_ESP32 = (formate_w)? {1'b0, data_colour, distance_w}: {1'b1, data_colour, white_center_x_pixel};
+			// 4 : message_to_ESP32 = (formate_b)? {1'b0, data_colour, distance_b}: {1'b1, data_colour, black_center_x_pixel};
             5 : message_to_ESP32 = (formate_y)? {1'b0, data_colour, distance_y}: {1'b1, data_colour, yellow_center_x_pixel};
             6 : message_to_ESP32 = (formate_c)? {1'b0, data_colour, distance_c}: {1'b1, data_colour, cyan_center_x_pixel};
             7 : message_to_ESP32 = (formate_blue)? {1'b0, data_colour, distance_blue}: {1'b1, data_colour, blue_center_x_pixel};
@@ -2726,7 +3243,7 @@ end
 
 reg lock_r, lock_p, lock_w, lock_g, lock_b, lock_c, lock_y, lock_blue;
 always @(posedge clk) begin
-	if(message_from_ESP32 == 70) begin
+	if(message_from_ESP32 == 70 || message_from_ESP32 == 300) begin
 		lock_r <= 0;
 		lock_p <= 0;
 		lock_w <= 0;
@@ -2771,10 +3288,22 @@ always @(posedge clk) begin
 					end
 				end
 			4 : begin
-					if(selected_b)begin
+					if(selected_b)begin // could be comfirmation on 2 building case, could be 1
 						lock_b <= 0;
+						// if(two_buildings_detected)begin// 2 building case 
+						// 	if(~left_building_detected) begin// left not detected   -> first comfirmation -> 
+						// 		//
+						// 	end 
+						// 	else if (left_building_detected && ~right_building_detected) begin
+						// 		// block left
+						// 	end
+						// 	else if(left_building_detected && right_building_detected) begin // left detected already ->second confirmation ->  block both slots
+						// 		// block both
+						// 	end 
+						// end
+
 					end 
-					else if(formate_b && detection_request) begin
+					else if(formate_b && detection_request) begin // this would need to be changed 
 						lock_b <=1;
 					end
 				end

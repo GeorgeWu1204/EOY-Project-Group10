@@ -21,7 +21,7 @@
 // A_star a_star_module;
 // //Communication communication_module;
 
-// int received;
+// int received_FPGA;
 // bool FPGA_ready = false;
 // // define VSPI_SS  SS
 
@@ -36,7 +36,7 @@
 // int explore_map[11][17];
 // // Read in core 0 Write in core 1
 // int user_initial_car_altitude;
-// Pair user_initial_position;
+// std::pair<int, int> user_initial_position;
 // Pair user_destination;
 // std::vector<double> alien_message;
 // std::vector<int> leave_position;
@@ -92,7 +92,7 @@
 //     delay(2000); // try with this Jeffrey v
   
 //     switch(select_message){
-//         case 1:
+//         case 0:
 //             xTaskCreatePinnedToCore(exploration_loop, "Exploration", 10000, NULL, 0, &modeTask, 0); // loop task
 //             xTaskCreatePinnedToCore(export_alien_location_map, "Export_map", 10000, NULL, 0, &modeTask, 0); // loop task
 //         break;
@@ -171,7 +171,6 @@
 //     std::pair<int,int> currentPlace; 
 //     //std::vector<int,int> currentPlace; 
 //     while (true) {
-
 //         if (xSemaphoreTake(returnStationSemaphore, (TickType_t) 0) == pdTRUE) { // wait until the semaphore is free
 //         break;  // exit the waiting loop
 //         }
@@ -225,11 +224,11 @@
 //         digitalWrite(hspi->pinSS(), LOW);
 //         Serial.print("<------------Transfer----------->");
 //         Serial.println(70);
-//         received = hspi->transfer16(70);
-//         Serial.println(received);
+//         received_FPGA = hspi->transfer16(70);
+//         Serial.println(received_FPGA);
 //         digitalWrite(hspi->pinSS(), HIGH);
 //         hspi->endTransaction();
-//         if (received == 60){
+//         if (received_FPGA == 60){
 //             FPGA_ready = true;
 //             Serial.println("<=========================****************===========================+>");
 //         }
@@ -256,8 +255,8 @@
 //         // SOS
 //         Serial.print("<------------Transfer----------->");
 //         Serial.println(special_code);
-//         received = hspi->transfer16(special_code);
-//         std::string received_in_binary = std::bitset<16>(received).to_string();
+//         received_FPGA = hspi->transfer16(special_code);
+//         std::string received_in_binary = std::bitset<16>(received_FPGA).to_string();
 //         digitalWrite(hspi->pinSS(), HIGH);
 //         hspi->endTransaction();
 
@@ -331,7 +330,7 @@
 //             }
 //         }
 //         // TODO: .h 
-//         all_object_is_detected = Vision_main_loop(received, special_code, colour_map, continue_angle, start_detection); //------> all objects are detected
+//         all_object_is_detected = Vision_main_loop(received_FPGA, special_code, colour_map, continue_angle, start_detection); //------> all objects are detected
 //         if (all_object_is_detected)
 //         {
 //             if (colour_map.size() == 0)
@@ -1182,7 +1181,28 @@
 // }
 // //------------------------- Previous Design ---------------------------
 //     //void move_to_dest(int initial_car_altitude, Pair initial_position, Pair destination){ 
-// void move_to_dest(Pair initial_position, Pair destination){
+// void move_to_dest(int initial_car_altitude, Pair initial_position, Pair destination){
+//     float initial_angle;
+//     switch(user_initial_car_altitude){
+//         case 00:
+//             initial_angle = 90;
+//         break;
+//         case 1:
+//             initial_angle = 180;
+//         break;
+//         case 10:
+//             initial_angle = 0;
+//         break;
+//         case 11:
+//             initial_angle = -90;
+//         break;
+
+//     }
+    
+
+//     roverSetGlobalCoords(initial_position.second, -initial_position.first, initial_angle);
+
+
 //     std::stack<Pair> path;
 //     path = a_star_module.aStarSearch(aStar_map, initial_position, destination);
 //         //current_location = path.top();

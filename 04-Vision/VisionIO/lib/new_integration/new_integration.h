@@ -1,5 +1,6 @@
-#ifndef NEW_INTEGRATION_H
-#define NEW_INTEGRATION_H
+#ifndef NEW_INTEGRATIONj_H
+#define NEW_INTEGRATIONj_H
+
 #include <Arduino.h>
 #include <SPI.h>
 #include <bitset>
@@ -30,11 +31,16 @@ struct cell {
 
 // User
 
+inline float centerToF, leftToF, rightToF, topToF;
+
 bool execution_check();
 
 void modeBegin(int select_message);
 
+void ToF_check( std::vector<int> xHistory, std::vector<int> yHistory, std::vector<int> next_rover_position, bool start_detection, int current_car_altitude);
+
 std::pair<std::string, std::vector<double>> getAlien_message();
+std::pair<int, std::vector<double>>         getTower_message();
 
 std::vector<int> getLeave_position();
 
@@ -48,7 +54,13 @@ bool get_tower_detected();
 
 std::map<std::string, std::vector<double>> get_complete_alien_storage();
 
+void battery_low_return();
+
+std::pair<int,int> returnCurrentPosition();
+
 // Vision
+
+bool building_measure(std::map<std::string, std::vector<double>> &detected_alien_set);
 
 bool fpga_loop(std::map<std::string, std::vector<double>> &colour_map, bool start_detection);
 
@@ -58,13 +70,16 @@ void exploration_loop(void * param);
 
 void export_alien_location_map(void * param);
 
-void listen_map_alien(std::vector<int> rover_position, int map[11][17], std::map<std::string, std::vector<double>> &alien_storage, std::vector<std::string> wrong_detect_alien, int current_car_altitude, bool start_detection);
+void listen_map_alien(std::vector<int> rover_position, int map[11][17], std::map<std::string, std::vector<double>> &alien_storage, std::vector<std::string> wrong_detect_alien, int current_car_altitude, bool start_detection, int offset);
 
-void add_obstacles (int alien_map [11][17], int x_low, int x_high, int y_low, int y_high);
+void ToF_check_map(std::vector<int> next_rover_position);
 
 //A-star
+void add_obstacles( int alien_map [11][17], int x_low, int x_high, int y_low, int y_high);
 
-void move_to_dest(volatile int initial_car_altitude, Pair initial_position, Pair destination);
+//void move_to_dest(int initial_car_altitude, Pair initial_position, Pair destination);
+void move_to_dest(Pair initial_position, Pair destination);
+
 
 void aStar(void * param);
 
@@ -78,4 +93,7 @@ int relative_rotation(int original_car_angle, int target_angle);
 
 void rotate_translate_drive_command(int relative_movement);
 
+
+// remote control
+std::map<std::string, std::vector<double>> remote_detect();
 #endif

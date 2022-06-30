@@ -38,7 +38,6 @@ int explore_map[11][17];
 int user_initial_car_altitude;
 Pair user_initial_position;
 Pair user_destination;
-std::vector<double> alien_message;
 std::vector<int> leave_position;
 std::pair<std::string, std::vector<double>> send_alien_message;  // varible that would be rechieved by core 1 storing colour + [distance, angle, count]
 volatile bool start_leaving;
@@ -60,7 +59,15 @@ SemaphoreHandle_t movingSemaphore;
 TaskHandle_t startTask;
 TaskHandle_t modeTask;
 
+// std::pair<int,int> leftDownCorner (0,0); 
+// std::pair<int,int> rightDownCorner (10,0);
+// std::pair<int,int> rightUpCorner (10,16);
+// std::pair<int,int> leftUpCorner (0,16);
 
+int leftDownCorner = 0; 
+int rightDownCorner = 1; 
+int rightUpCorner = 2;
+int leftUpCorner = 3;
 
 //------------------------------------------------
 // User 
@@ -80,16 +87,35 @@ void modeBegin(int select_message){
     delay(2000); // try with this Jeffrey v
   
     switch(select_message){
-        case 1:
-            xTaskCreatePinnedToCore(exploration_loop, "Exploration", 10000, NULL, 0, &modeTask, 0); // loop task
+        case 0:
+            Serial.println("Case 0 ");
+            xTaskCreatePinnedToCore(exploration_loop, "Exploration", 10000, (void*)&leftDownCorner, 0, &modeTask, 0); // loop task
             xTaskCreatePinnedToCore(export_alien_location_map, "Export_map", 10000, NULL, 0, &modeTask, 0); // loop task
-        break;
+            Serial.println("done 0 ");
+            break;
+        case 1:
+            Serial.println("Case 1 ");
+            xTaskCreatePinnedToCore(exploration_loop, "Exploration", 10000, (void*)&rightDownCorner, 0, &modeTask, 0); // loop task
+            xTaskCreatePinnedToCore(export_alien_location_map, "Export_map", 10000, NULL, 0, &modeTask, 0); // loop task
+            Serial.println("done 1 ");
+            break;
         case 2:
+            Serial.println("Case 2 ");
+            xTaskCreatePinnedToCore(exploration_loop, "Exploration", 10000, (void*)&rightUpCorner, 0, &modeTask, 0); // loop task
+            xTaskCreatePinnedToCore(export_alien_location_map, "Export_map", 10000, NULL, 0, &modeTask, 0); // loop task
+            break;
+        case 3:
+            Serial.println("Case 3 ");
+            xTaskCreatePinnedToCore(exploration_loop, "Exploration", 10000, (void*)&leftUpCorner, 0, &modeTask, 0); // loop task
+            xTaskCreatePinnedToCore(export_alien_location_map, "Export_map", 10000, NULL, 0, &modeTask, 0); // loop task
+            break;
+        case 4:
             xTaskCreatePinnedToCore(export_alien_location_map, "Export_map", 10000, NULL, 0, &modeTask, 0); // loop task
             xTaskCreatePinnedToCore(aStar, "A_star", 10000, NULL, 0, &modeTask, 0); // loop task
-        break;
+            break;
         }
     }
+
 
 std::pair<std::string, std::vector<double>> getAlien_message(){
     // alien_storage instaantious map
@@ -133,9 +159,9 @@ bool leaving_detected(){
         return true;
     }
     else{
-        return false;
-        }
-    }   
+    return false;
+    }
+}   
 
 
 
@@ -157,7 +183,7 @@ void start(void * param) {
     Serial.begin(115200);
     task_start = true;
     Serial.print("<------plplplplplpl----------->");
-    roverBegin();
+    //roverBegin();
     Serial.print("<------plplplplplpl----pppoooooo------->");
     hspi = new SPIClass(HSPI);
     hspi->begin(HSPI_SCK, HSPI_MISO, HSPI_MOSI, HSPI_SS);
@@ -205,7 +231,8 @@ bool fpga_loop(std::map<std::string, std::vector<double>> &colour_map, bool star
         hspi->endTransaction();
 
         std::string type;
-        Serial.print("special_code: ");
+        Serial.print("previous special_code: ");
+        Serial.println(previous_special_code);
         switch (previous_special_code)
         {
         // case 10:
@@ -218,7 +245,7 @@ bool fpga_loop(std::map<std::string, std::vector<double>> &colour_map, bool star
         //     type = "Formate valid    ||";
         //     break;
         case 10:
-            type = "lock    ||";
+            type = "slot    ||";
             break;
         case 11:
             type = "Valid    ||";
@@ -230,13 +257,13 @@ bool fpga_loop(std::map<std::string, std::vector<double>> &colour_map, bool star
             type = "MOVING   ||";
             break;
         case 14:
-            type = "c_8 ||";
+            type = "c_8      ||";
             break;
         case 15:
-            type = "data_colour Distance_o ||";
+            type = "data_colour Distance_black ||";
             break;
         case 16:
-            type = "pixel avg_o ||";
+            type = "pixel avg_black ||";
             break;
         case 17:
             type = "Distance ||";
@@ -245,8 +272,8 @@ bool fpga_loop(std::map<std::string, std::vector<double>> &colour_map, bool star
             type = "False";
         }
 
-        Serial.println(type.c_str());
-        Serial.print("MAIN: ");
+        Serial.print(type.c_str());
+        Serial.print("  ");
         Serial.println(received_in_binary.c_str());
         delay(100);
         // Distance code has to be sent twice
@@ -330,13 +357,13 @@ bool Vision_main_loop(int received, int special_code, std::map<std::string, std:
                 Serial.print(colour_first);
                 Serial.println("<----------------------MEANSURE DISTANCE------------------->");
 
-                for (int i = 0; i < 50; i++){
+                for (int i = 0; i < 20; i++){
                     // try to stabilize the distance inform
 
                     hspi->beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE0));
                     digitalWrite(hspi->pinSS(), LOW);
                     Serial.print("<------------Transfer----------->");
-                    Serial.println(4);
+                    Serial.println(17);
                     received_tmp = hspi->transfer16(17);
                     previous_special_code = 17;
                     std::string distance_tmp_in_binary = std::bitset<16>(received_tmp).to_string();
@@ -392,17 +419,22 @@ bool Vision_main_loop(int received, int special_code, std::map<std::string, std:
                         max_key = it->first;
                     }
                 }
-                if (max_number <= 10)
+                if (max_number < 10)
                 {
                     Serial.println("XXXXXXXXXXXXXXXXXXX Invalid distance count XXXXXXXXXXXXXXXXXXX");
                     // TODO: Rotate back AND THEN Transmit Unknow.
                 }
                 else
                 {
+                    int max_key_diameter, max_number_diameter = 0;
+                    int tower_diameter_binary;
+                    int scale_r = 1;
+                    int sum_binary_to_decimal_r = 0;
                     distance_final = max_key;
                     int select_message;
+                    std::string tmp;
                     std::string block_colour;
-                    switch (colour_first){
+                    switch(colour_first){
                         case 0:
                             // red
                             select_message = 30;
@@ -423,7 +455,130 @@ bool Vision_main_loop(int received, int special_code, std::map<std::string, std:
                         case 100:
                         //TODO:: bllack
                             select_message = 34;
-                            block_colour = "b";
+                            block_colour = "t";
+
+                            hspi->beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE0));
+                            digitalWrite(hspi->pinSS(), LOW);
+                            Serial.print("<------------Transfer----------->");
+                            Serial.println(18);
+                            received_tmp = hspi->transfer16(18);
+                            tmp = std::bitset<16>(received_tmp).to_string();
+                            Serial.println(tmp.c_str());
+                            previous_special_code = 18;
+                            digitalWrite(hspi->pinSS(), HIGH);
+                            hspi->endTransaction();
+
+                             hspi->beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE0));
+                            digitalWrite(hspi->pinSS(), LOW);
+                            Serial.print("<------------Transfer----------->");
+                            Serial.println(18);
+                            received_tmp = hspi->transfer16(18);
+                            tmp = std::bitset<16>(received_tmp).to_string();
+                            Serial.println(tmp.c_str());
+                            previous_special_code = 18;
+                            digitalWrite(hspi->pinSS(), HIGH);
+                            hspi->endTransaction();
+                            
+                            hspi->beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE0));
+                            digitalWrite(hspi->pinSS(), LOW);
+                            Serial.print("<------------Transfer----------->");
+                            Serial.println(18);
+                            received_tmp = hspi->transfer16(18);
+                            tmp = std::bitset<16>(received_tmp).to_string();
+                            Serial.println(tmp.c_str());
+                            previous_special_code = 18;
+                            digitalWrite(hspi->pinSS(), HIGH);
+                            hspi->endTransaction();
+
+                            hspi->beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE0)); // receving distance message
+                            digitalWrite(hspi->pinSS(), LOW);
+                            Serial.print("<------------Transfer----------->");
+                            Serial.println(17);
+                            received_tmp = hspi->transfer16(17);
+                            tmp = std::bitset<16>(received_tmp).to_string();
+                            Serial.println(tmp.c_str());
+                            previous_special_code = 17;
+                            digitalWrite(hspi->pinSS(), HIGH);
+                            hspi->endTransaction();
+
+                            Serial.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+                            Serial.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+                            Serial.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+                            
+                            tower_diameter_binary = std::stoi(std::bitset<16>(received_tmp).to_string().substr(5,15));
+
+                            // for (int i = 0; i < 20; i++){
+                            //     // try to stabilize the diameter inform
+
+                            //     hspi->beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE0));
+                            //     digitalWrite(hspi->pinSS(), LOW);
+                            //     Serial.print("<------------Transfer----------->");
+                            //     Serial.println(18);
+                            //     received_tmp = hspi->transfer16(18);
+                            //     previous_special_code = 18;
+                            //     std::string diameter_tmp_in_binary = std::bitset<16>(received_tmp).to_string();
+
+                            //     digitalWrite(hspi->pinSS(), HIGH);
+                            //     hspi->endTransaction();
+                            //     delay(100);
+
+                            //     diameter_binary_tmp = std::stoi(std::bitset<16>(received_tmp).to_string().substr(5,15));
+                            //     fpga_module.distance_decode(distance_tmp_in_binary, colour_tmp, distance_tmp);
+                            //     // Serial.print(i);
+                            //     // Serial.print("  Distance Mesaage : ");
+                            //     // Serial.println(distance_tmp_in_binary.c_str());
+
+                            //     if (received_in_binary.at(0) == '0' && colour_tmp == colour_first){
+                            //         // the message is belone to the same colour
+                            //         Serial.print(i);
+                            //         Serial.print(" Colour: ");
+                            //         Serial.print(colour_tmp);
+                            //         Serial.print(" Distance: ");
+                            //         Serial.println(distance_tmp);
+                            //         if (distance_tmp != 0){
+                            //             std::map<int, int>::iterator it = distance_count.find(distance_tmp);
+                            //             if (it != distance_count.end()){
+                            //                 it->second++;
+                            //             }
+                            //             else{
+                            //                 distance_count.insert(std::make_pair(distance_tmp, 1));
+                            //             }
+                            //         }
+                            //     }
+                            //     else{
+                            //         // unexpect warning;
+                            //         if (colour_tmp != colour_first){
+                            //             Serial.print(i);
+                            //             Serial.print(" Unexpected behaviour, Colour Change changed :: ");
+                            //             Serial.print("  Distance Mesaage : ");
+                            //             Serial.println(distance_tmp_in_binary.c_str());
+                                        
+                            //         }
+                            //         else
+                            //         Serial.print(i);
+                            //         Serial.println("  Unexpected behaviour, received message should be distance type");
+                            //     }
+                            // }
+
+
+
+
+                           
+                            while (true){
+                                if (tower_diameter_binary % 10 == 1){
+                                    sum_binary_to_decimal_r += 1 * scale_r;
+                                }
+                                scale_r *= 2;
+                                if(tower_diameter_binary / 10 == 0){
+                                    break;
+                                }
+                                else{
+                                    tower_diameter_binary /= 10;
+                                }
+                            }
+                            Serial.println(tower_diameter_binary);
+                            Serial.print(" -------> CONVERT TO ----------->");
+                            Serial.println(sum_binary_to_decimal_r);
                             break;
                         case 101:
                             select_message = 35;
@@ -447,6 +602,7 @@ bool Vision_main_loop(int received, int special_code, std::map<std::string, std:
                     digitalWrite(hspi->pinSS(), HIGH);
                     hspi->endTransaction();
                     delay(100);
+
                     Serial.println("********************* SUCCESS SUCCESS SUCCESS *********************");
                     Serial.print("Finalized Distance :: ");
                     Serial.println(distance_final);
@@ -467,17 +623,23 @@ bool Vision_main_loop(int received, int special_code, std::map<std::string, std:
                             distance_final /= 10;
                         }
                     }
+
                     Serial.print(distance_final);
-                    
                     Serial.print(" -------> CONVERT TO ----------->");
                     Serial.println(sum_binary_to_decimal);
 
-                    std::vector<double> position_detail;
+                    std::vector<double> position_detail; // position detail 
                     double angle = -getRoverPhi(true);
-                    position_detail.push_back(sum_binary_to_decimal);
+                    position_detail.push_back(sum_binary_to_decimal + sum_binary_to_decimal_r/2);
                     position_detail.push_back(angle);
-                    colour_map = std::make_pair(block_colour, position_detail);
+
+                    position_detail.push_back(sum_binary_to_decimal_r); //radius 
+
+                    colour_map = std::make_pair(block_colour, position_detail); // combined with colour 
                     detected_alien_set.insert(colour_map);
+
+
+
                     Serial.println("<------------------------------------ BLOCKING ----------------------------------->");
                     Serial.println("<------------------------------------ BLOCKING ----------------------------------->");
                     Serial.println("<------------------------------------ BLOCKING ----------------------------------->");
@@ -511,7 +673,9 @@ bool Vision_main_loop(int received, int special_code, std::map<std::string, std:
         else if (received_in_binary.at(0) == '1')
         {
             // pixel message
+            Serial.println("Done1");
             fpga_module.pixel_decode(received_in_binary, colour_first, pixel_first);
+            Serial.println("Done2");
             if (special_code == 10)
             {
                 
@@ -542,32 +706,55 @@ bool Vision_main_loop(int received, int special_code, std::map<std::string, std:
                 hspi->endTransaction();
                 while (out)
                 {
-                    hspi->beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE0));
-                    digitalWrite(hspi->pinSS(), LOW);
-                    Serial.print("<------------Transfer----------->");
-                    Serial.println(17);
-                    received_tmp = hspi->transfer16(17);
-                    previous_special_code = 17;
-                    std::string distance_tmp_in_binary = std::bitset<16>(received_tmp).to_string();
-                    digitalWrite(hspi->pinSS(), HIGH); // pull ss high to signify end of data transfer
-                    hspi->endTransaction();
-                    delay(100);
+                    //check angle <= 45?
+                    if( -45 <= getRoverPhi(true) <= 45){
+                        hspi->beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE0));
+                        digitalWrite(hspi->pinSS(), LOW);
+                        Serial.print("<------------Transfer----------->");
+                        Serial.println(17);
+                        received_tmp = hspi->transfer16(17);
+                        previous_special_code = 17;
+                        std::string distance_tmp_in_binary = std::bitset<16>(received_tmp).to_string();
+                        digitalWrite(hspi->pinSS(), HIGH); // pull ss high to signify end of data transfer
+                        hspi->endTransaction();
+                        delay(100);
 
-                    Serial.print("<------------WHILE CHECK----------->");
-                    Serial.print("<------------1------------>");
-                    Serial.print("<------------2------------>");
-                    Serial.print("Rotating message: ");
-                    Serial.println(distance_tmp_in_binary.c_str());
-
-                    if (distance_tmp_in_binary.at(0) == '0')
-                    {
-                        out = 0;
-                        Serial.println("<><><><><><><><><><><><><><>BRAKE<><><><><><><><><><><><><><>");
-                        roverStop();
-                        Serial.print("<-------------OUT------------>: ");
+                        Serial.print("<------------WHILE CHECK----------->");
+                        Serial.print("<------------1------------>");
+                        Serial.print("<------------2------------>");
+                        Serial.print("Rotating message: ");
                         Serial.println(distance_tmp_in_binary.c_str());
-                        Serial.println("<><><><><><><><><><><><><><>BRAKE<><><><><><><><><><><><><><>");
+
+                        if (distance_tmp_in_binary.at(0) == '0')
+                        {
+                            out = 0;
+                            Serial.println("<><><><><><><><><><><><><><>BRAKE<><><><><><><><><><><><><><>");
+                            roverStop();
+                            Serial.print("<-------------OUT------------>: ");
+                            Serial.println(distance_tmp_in_binary.c_str());
+                            Serial.println("<><><><><><><><><><><><><><>BRAKE<><><><><><><><><><><><><><>");
+                        }
+                    }else{
+                        //rotated angle is larger than 45 degree
+                        //rotate Back -> reset lock 70 -> go out of while loop
+                        out = 0;
+                        roverStop();
+                        double angle = -getRoverPhi(true);
+                        roverRotateBack(angle);
+                        roverWait();
+                        hspi->beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE0));
+                        digitalWrite(hspi->pinSS(), LOW);
+                        Serial.print("<------------Transfer----------->");
+                        Serial.println(200); 
+                        received_tmp = hspi->transfer16(200);
+                        previous_special_code = 200;
+                        std::string distance_tmp_in_binary = std::bitset<16>(received_tmp).to_string();
+                        digitalWrite(hspi->pinSS(), HIGH); // pull ss high to signify end of data transfer
+                        hspi->endTransaction();
+                        delay(100);
+                        break;
                     }
+
                     // TODO: check if this is still needed? if you r with in this "if" meaning lock is on? so 1111 wonldnt be the case
                     // else if (distance_tmp_in_binary == "1111111111111111")
                     // {
@@ -582,6 +769,7 @@ bool Vision_main_loop(int received, int special_code, std::map<std::string, std:
                     // }
                 }
 
+
                 if (non_detected_count > 10)
                 {
                     Serial.println("Fail return back");
@@ -593,6 +781,7 @@ bool Vision_main_loop(int received, int special_code, std::map<std::string, std:
                 }
                 delay(100);
             }
+            Serial.println("Done");
         }
     }
     else
@@ -702,17 +891,56 @@ void exploration_loop(void * param){ //  Exploration mode with defined starting 
     bool exploration_complete;
     //std::vector<std::string> wrong_detected_alien;
     bool step_taken = false;
+     std::vector<int> pre_next_rover_position, next_rover_position;
     std::vector<int> xHistory, yHistory;
-    xHistory.push_back(0);
-    yHistory.push_back(0);
-    current_rover_position.push_back(0);
-    current_rover_position.push_back(0);
-    explore_map[0][0] = 1;
+    int current_car_altitude;
+    switch(*((int*)param)){
 
-    int current_car_altitude = 10;
-    std::vector<int> pre_next_rover_position, next_rover_position;
-    pre_next_rover_position.push_back(0);
-    pre_next_rover_position.push_back(0);
+        case 0: xHistory.push_back(0);
+                yHistory.push_back(0);
+                current_rover_position.push_back(0);
+                current_rover_position.push_back(0);
+                explore_map[0][0] = 1;
+                current_car_altitude = 10;
+                pre_next_rover_position.push_back(0);
+                pre_next_rover_position.push_back(0);
+                break;
+
+        case 1: xHistory.push_back(10);   //[10,0]
+                yHistory.push_back(0);
+                current_rover_position.push_back(10);
+                current_rover_position.push_back(0);
+                explore_map[10][0] = 1;
+                current_car_altitude = 10;
+                pre_next_rover_position.push_back(10);
+                pre_next_rover_position.push_back(0);
+                break;
+               
+                break;
+        case 2: xHistory.push_back(10);    //[10,16]
+                yHistory.push_back(16);
+                current_rover_position.push_back(10);
+                current_rover_position.push_back(16);
+                explore_map[10][16] = 1;
+                current_car_altitude = 11;
+                pre_next_rover_position.push_back(0);
+                pre_next_rover_position.push_back(0);
+                 current_car_altitude = 10;
+                pre_next_rover_position.push_back(10);
+                pre_next_rover_position.push_back(16);
+                break;
+        case 3: xHistory.push_back(0);
+                yHistory.push_back(16);
+                current_rover_position.push_back(0);
+                current_rover_position.push_back(16);
+                explore_map[0][16] = 1;
+                 current_car_altitude = 11;
+                pre_next_rover_position.push_back(0);
+                pre_next_rover_position.push_back(16);
+                break;
+    }
+   
+   
     while (true)
     {
         // step 1: detect alien and refresh map
@@ -898,6 +1126,7 @@ void listen_map_alien(std::vector<int> rover_position, int map[11][17], std::map
     Serial.println("inside listen_map_alien");
     std::map<std::string, std::vector<double>> node_tmp_colour_map;
     double alienx, alieny;
+    double diameter, compliment;
     int xLow, xHigh, yLow, yHigh, xCenter, yCenter;
 
     // pair already exited in the loop
@@ -915,123 +1144,31 @@ void listen_map_alien(std::vector<int> rover_position, int map[11][17], std::map
             Serial.println(alienx);
             Serial.println(alieny);
             Serial.println("<----------------------ALIEN POSITION----------------------->");
+          
             // alien_position double tile
-            if(it_2->first != "Black"){
-                xLow = explore.normal_round(alienx - 0.25);
-                xHigh = explore.normal_round(alienx + 0.25);
-                yLow = explore.normal_round(alieny - 0.25);
-                yHigh = explore.normal_round(alieny + 0.25);
-                xCenter = explore.normal_round(alienx);
-                yCenter = explore.normal_round(alieny);
-            }else{
-                Serial.println("alien tower detected");
-                xLow = explore.normal_round(alienx - 0.6);
-                xHigh = explore.normal_round(alienx + 0.6);
-                yLow = explore.normal_round(alieny - 0.6);
-                yHigh = explore.normal_round(alieny + 0.6);
-                xCenter = explore.normal_round(alienx);
-                yCenter = explore.normal_round(alieny);
-            }
-            Serial.println("<========map location==========>");
-            Serial.print("xlow ");
-            Serial.print(xLow);
-            Serial.print("xHigh ");
-            Serial.print(xHigh);
-            Serial.print("yLow ");
-            Serial.print(yLow);
-            Serial.print("yHigh ");
-            Serial.println(yHigh);
-            Serial.print("yCenter ");
-            Serial.print(yCenter);
-            Serial.print("xCenter ");
-            Serial.println(xCenter);
-            Serial.println("<========map location==========>");
-           
             std::vector<double> alien_message_prepare; // tmp varible storing [distance, angle, count]
 
-            it_1 = alien_storage.find(it_2->first); // it_2->first colour
-            if (it_1 != alien_storage.end())
-            {
-                // alien already detected.
-                // update map
-                if (((xLow - 1) * 20 < it_1->second[0] < (xHigh + 1) * 20) || ((yLow - 1) * 20 < it_1->second[1] < (yLow + 1) * 20))
-                {
-                    Serial.println("Same alien detected ");
-                    Serial.print("color: ");
-                    Serial.print(it_1->first.c_str());
-                   
-                    it_1->second[0] = (alienx + it_1->second[0])/2;
-                    it_1->second[1] = (alieny + it_1->second[1])/2;
-                    it_1->second[2] += 1;
+            if(alienx == 0 && alieny == 0){ // Out of range 
+                it_1 = alien_storage.find(it_2->first); // it_2->first colour
+                if (it_1 != alien_storage.end()) { 
                     while (true) {
 
                         if (xSemaphoreTake(IntegrateSemaphore, (TickType_t) 0) == pdTRUE) { // wait until the semaphore is free
 
-                         break;  // exit the waiting loop
+                        break;  // exit the waiting loop
 
                         }
                     }
-                    alien_message_prepare.push_back((alienx + it_1->second[0])/2);
-                    alien_message_prepare.push_back((alieny + it_1->second[1])/2);
-                    alien_message_prepare.push_back(it_1->second[2]);
-                    xSemaphoreGive(IntegrateSemaphore);
-                    send_alien_message = std::make_pair(it_1->first, alien_message_prepare);
-                    
-                    if (0 <= xLow < xBound && 0 <= yLow < yBound)
-                    {
-                        map[xLow][yLow] = 900;
-                    }
-                    
-                    if (0 <= xLow < xBound && 0 <= yHigh < yBound)
-                    {
-                        map[xLow][yHigh] = 900;
-                    }
-                    if (0 <= xHigh < xBound && 0 <= yLow < yBound)
-                    {
-                        map[xHigh][yLow] = 900;
-                    }
-                    if (0 <= xHigh < xBound && 0 <= yHigh < yBound)
-                    {
-                        map[xHigh][yHigh] = 900;
-                    }
-
-                    //maping center
-                    if (0 <= xCenter < xBound && 0 <= yLow < yBound)
-                    {
-                        map[xCenter][yLow] = 900;
-                    }
-                    if (0 <= xCenter < xBound && 0 <= yHigh < yBound)
-                    {
-                        map[xCenter][yHigh] = 900;
-                    }
-                    if (0 <= xHigh < xBound && 0 <= yCenter < yBound)
-                    {
-                        map[xHigh][yCenter] = 900;
-                    }
-                    if (0 <= xHigh < xBound && 0 <= yCenter < yBound)
-                    {
-                        map[xHigh][yCenter] = 900;
-                    }
-                    if(0 <= xCenter < xBound && 0 <= yCenter < yBound)
-                    {
-                        map[xCenter][yCenter] = 900;
-                    }
-                    return;
-                
-                }
-                else
-                {
-                    alien_message_prepare.push_back(alienx);
-                    alien_message_prepare.push_back(alieny);
                     it_1->second[2] -= 1;
-                    if(it_1->second[2] == 0){
-                         alien_message_prepare.push_back(-1);
-                    }
-                    
-                   
+                    alien_message_prepare.push_back(alienx*20);
+                    alien_message_prepare.push_back(alieny*20);
+                    alien_message_prepare.push_back(it_1->second[2]);
+                    Serial.println("COUNT: "); 
+                    Serial.print(it_1->second[2]); 
                     send_alien_message = std::make_pair(it_1->first, alien_message_prepare);
+                    xSemaphoreGive(IntegrateSemaphore);
 
-                    Serial.println("Wrong alien detected, position change");
+                    Serial.println("OUT OF RANGE");
                     Serial.print("color: ");
                     Serial.println(it_1->first.c_str());
                     
@@ -1039,69 +1176,271 @@ void listen_map_alien(std::vector<int> rover_position, int map[11][17], std::map
                         wrong_detect_alien.push_back(it_1->first);
                         Serial.print("erasing it from the stable list");
                         alien_storage.erase(it_1);
-                    } 
-                }
+                    }
+                }      
             }
-            else
-            {
-                Serial.println(" New alien detected ");
-  
-                alien_message_prepare.push_back(alienx);
-                alien_message_prepare.push_back(alieny);
-                alien_message_prepare.push_back(1);
-                send_alien_message = std::make_pair(it_2->first, alien_message_prepare); // it_1 storage slot
-                Serial.println("exe 1");
-                alien_message.clear();
-                Serial.println("exe 2");
-                alien_message.push_back(alienx);
-                Serial.println("exe 3");
-                alien_message.push_back(alieny);
-                 Serial.println("exe 4");
-                alien_message.push_back(1);
-                 Serial.println("exe 5");
-                alien_storage.insert(std::make_pair(it_2->first, alien_message_prepare));// it_2 tmp slot
-                Serial.println("exec 6");
-                if (0 <= xLow < xBound && 0 <= yLow < yBound)
-                {
-                    map[xLow][yLow] = 900;
+            else{
+                if(it_2->first != "t"){ // parameter would be used in mapping
+                    xLow = explore.normal_round(alienx - 0.25);
+                    xHigh = explore.normal_round(alienx + 0.25);
+                    yLow = explore.normal_round(alieny - 0.25);
+                    yHigh = explore.normal_round(alieny + 0.25);
+                    // xCenter = explore.normal_round(alienx);
+                    // yCenter = explore.normal_round(alieny);
+                }else{
+                    Serial.println("<---------------------alien tower detected------------------>"); // parameter would be used in mapping
+                    Serial.print("diameter: ");
+                    diameter = it_2->second[2];
+                    Serial.println(diameter);
+                    compliment = diameter/80 + 0.25;
+                    Serial.print("compliment factor: ");
+                    Serial.println(compliment);
+                    xLow = explore.normal_round(alienx - compliment);
+                    xHigh = explore.normal_round(alienx + compliment);
+                    yLow = explore.normal_round(alieny - compliment);
+                    yHigh = explore.normal_round(alieny + compliment);
                 }
-                if (0 <= xLow < xBound && 0 <= yHigh < yBound)
-                {
-                    map[xLow][yHigh] = 900;
-                }
-                if (0 <= xHigh < xBound && 0 <= yLow < yBound)
-                {
-                    map[xHigh][yLow] = 900;
-                }
-                if (0 <= xHigh < xBound && 0 <= yHigh < yBound)
-                {
-                    map[xHigh][yHigh] = 900;
-                }
-
-                Serial.println("Detected Alien Map");
-                Serial.print("(Low Low) ");
+                Serial.println("<========map location==========>");
+                Serial.print("xlow ");
                 Serial.print(xLow);
-                Serial.print(", ");
-                Serial.println(yLow);
-
-                Serial.print("(Low High) ");
-                Serial.print(xLow);
-                Serial.print(", ");
+                Serial.print("xHigh ");
+                Serial.print(xHigh);
+                Serial.print("yLow ");
+                Serial.print(yLow);
+                Serial.print("yHigh ");
                 Serial.println(yHigh);
 
-                Serial.print("(High Low) ");
-                Serial.print(xHigh);
-                Serial.print(", ");
-                Serial.println(yLow);
+                if(it_2->first != "t"){ //case non tower
+                    it_1 = alien_storage.find(it_2->first); // it_2->first colour
+                    if (it_1 != alien_storage.end()){
+                        // alien already detected.
+                        // update map
+                        if (((xLow - 1) * 20 < it_1->second[0] < (xHigh + 1) * 20) || ((yLow - 1) * 20 < it_1->second[1] < (yLow + 1) * 20)){
+                            Serial.println("Same alien detected ");
+                            Serial.print("color: ");
+                            Serial.print(it_1->first.c_str());
+                        
+                            it_1->second[0] = (alienx + it_1->second[0])/2;
+                            it_1->second[1] = (alieny + it_1->second[1])/2;
+                            it_1->second[2] += 1;
+                            while (true) {
 
-                Serial.print("(High High) ");
-                Serial.print(xHigh);
-                Serial.print(", ");
-                Serial.println(yHigh);
+                                if (xSemaphoreTake(IntegrateSemaphore, (TickType_t) 0) == pdTRUE) { // wait until the semaphore is free
+
+                                break;  // exit the waiting loop
+
+                                }
+                            }
+                            alien_message_prepare.push_back((alienx*20 + it_1->second[0])/2);
+                            alien_message_prepare.push_back((alieny*20 + it_1->second[1])/2);
+                            alien_message_prepare.push_back(it_1->second[2]);
+                            Serial.println("COUNT: "); 
+                            Serial.print(it_1->second[2]); 
+                            xSemaphoreGive(IntegrateSemaphore);
+                            send_alien_message = std::make_pair(it_1->first, alien_message_prepare);
+                            
+                            // if (0 <= xLow < xBound && 0 <= yLow < yBound)
+                            // {
+                            //     map[xLow][yLow] = 900;
+                            // }
+                            
+                            // if (0 <= xLow < xBound && 0 <= yHigh < yBound)
+                            // {
+                            //     map[xLow][yHigh] = 900;
+                            // }
+                            // if (0 <= xHigh < xBound && 0 <= yLow < yBound)
+                            // {
+                            //     map[xHigh][yLow] = 900;
+                            // }
+                            // if (0 <= xHigh < xBound && 0 <= yHigh < yBound)
+                            // {
+                            //     map[xHigh][yHigh] = 900;
+                            // }
+
+                            // //maping center
+                            // if (0 <= xCenter < xBound && 0 <= yLow < yBound)
+                            // {
+                            //     map[xCenter][yLow] = 900;
+                            // }
+                            // if (0 <= xCenter < xBound && 0 <= yHigh < yBound)
+                            // {
+                            //     map[xCenter][yHigh] = 900;
+                            // }
+                            // if (0 <= xHigh < xBound && 0 <= yCenter < yBound)
+                            // {
+                            //     map[xHigh][yCenter] = 900;
+                            // }
+                            // if (0 <= xHigh < xBound && 0 <= yCenter < yBound)
+                            // {
+                            //     map[xHigh][yCenter] = 900;
+                            // }
+                            // if(0 <= xCenter < xBound && 0 <= yCenter < yBound)
+                            // {
+                            //     map[xCenter][yCenter] = 900;
+                            // }
+                            add_obstacles(map, xLow, xHigh, yLow, yHigh);
+                            return;
+                        
+                        }
+                        else{
+                            while (true) {
+
+                                if (xSemaphoreTake(IntegrateSemaphore, (TickType_t) 0) == pdTRUE) { // wait until the semaphore is free
+
+                                break;  // exit the waiting loop
+
+                                }
+                            }
+                            it_1->second[2] -= 1;
+                            alien_message_prepare.push_back(alienx*20);
+                            alien_message_prepare.push_back(alieny*20);
+                            alien_message_prepare.push_back(it_1->second[2]);
+                            Serial.println("COUNT: "); 
+                            Serial.print(it_1->second[2]); 
+                            xSemaphoreGive(IntegrateSemaphore);
+                            send_alien_message = std::make_pair(it_1->first, alien_message_prepare);
+
+                            Serial.println("Wrong alien detected, position change");
+                            Serial.print("color: ");
+                            Serial.println(it_1->first.c_str());
+                            
+                            if(it_1->second[2] == 0){
+                                wrong_detect_alien.push_back(it_1->first);
+                                Serial.print("erasing it from the stable list");
+                                alien_storage.erase(it_1);
+                            } 
+                        }
+                    }
+                    else{
+                        Serial.println(" New alien detected ");
+                        while (true) {
+
+                            if (xSemaphoreTake(IntegrateSemaphore, (TickType_t) 0) == pdTRUE) { // wait until the semaphore is free
+
+                            break;  // exit the waiting loop
+
+                            }
+                        }
+                        alien_message_prepare.push_back(alienx*20);
+                        alien_message_prepare.push_back(alieny*20);
+                        alien_message_prepare.push_back(1);    
+                        send_alien_message = std::make_pair(it_2->first, alien_message_prepare); // it_1 storage slot
+                        xSemaphoreGive(IntegrateSemaphore);
+                        alien_storage.insert(std::make_pair(it_2->first, alien_message_prepare));// it_2 tmp slot
+                        Serial.println("exec 6");
+                        // if (0 <= xLow < xBound && 0 <= yLow < yBound)
+                        // {
+                        //     map[xLow][yLow] = 900;
+                        // }
+                        // if (0 <= xLow < xBound && 0 <= yHigh < yBound)
+                        // {
+                        //     map[xLow][yHigh] = 900;
+                        // }
+                        // if (0 <= xHigh < xBound && 0 <= yLow < yBound)
+                        // {
+                        //     map[xHigh][yLow] = 900;
+                        // }
+                        // if (0 <= xHigh < xBound && 0 <= yHigh < yBound)
+                        // {
+                        //     map[xHigh][yHigh] = 900;
+                        // }
+                        add_obstacles(map, xLow, xHigh, yLow, yHigh);
+
+                        Serial.println("Detected Alien Map");
+                        Serial.print("(Low Low) ");
+                        Serial.print(xLow);
+                        Serial.print(", ");
+                        Serial.println(yLow);
+
+                        Serial.print("(Low High) ");
+                        Serial.print(xLow);
+                        Serial.print(", ");
+                        Serial.println(yHigh);
+
+                        Serial.print("(High Low) ");
+                        Serial.print(xHigh);
+                        Serial.print(", ");
+                        Serial.println(yLow);
+
+                        Serial.print("(High High) ");
+                        Serial.print(xHigh);
+                        Serial.print(", ");
+                        Serial.println(yHigh);
+                    }
+                }else{   //case tower                   
+                    Serial.println(" tower detected ");
+                    while (true) {
+
+                        if (xSemaphoreTake(IntegrateSemaphore, (TickType_t) 0) == pdTRUE) { // wait until the semaphore is free
+
+                        break;  // exit the waiting loop
+
+                        }
+                    }
+                    alien_message_prepare.push_back(alienx*20);
+                    alien_message_prepare.push_back(alieny*20);
+                    alien_message_prepare.push_back(1); 
+                    alien_message_prepare.push_back(diameter);
+                    send_alien_message = std::make_pair(it_2->first, alien_message_prepare); // it_1 storage slot
+                    xSemaphoreGive(IntegrateSemaphore);
+                    alien_storage.insert(std::make_pair(it_2->first, alien_message_prepare));// it_2 tmp slot
+
+                    // if (0 <= xLow < xBound && 0 <= yLow < yBound)
+                    // {
+                    //     map[xLow][yLow] = 900;
+                    // }
+                    // if (0 <= xLow < xBound && 0 <= yHigh < yBound)
+                    // {
+                    //     map[xLow][yHigh] = 900;
+                    // }
+                    // if (0 <= xHigh < xBound && 0 <= yLow < yBound)
+                    // {
+                    //     map[xHigh][yLow] = 900;
+                    // }
+                    // if (0 <= xHigh < xBound && 0 <= yHigh < yBound)
+                    // {
+                    //     map[xHigh][yHigh] = 900;
+                    // }
+                    add_obstacles(map, xLow, xHigh, yLow, yHigh);
+
+                    Serial.println("Detected Alien Map");
+                    Serial.print("(Low Low) ");
+                    Serial.print(xLow);
+                    Serial.print(", ");
+                    Serial.println(yLow);
+
+                    Serial.print("(Low High) ");
+                    Serial.print(xLow);
+                    Serial.print(", ");
+                    Serial.println(yHigh);
+
+                    Serial.print("(High Low) ");
+                    Serial.print(xHigh);
+                    Serial.print(", ");
+                    Serial.println(yLow);
+
+                    Serial.print("(High High) ");
+                    Serial.print(xHigh);
+                    Serial.print(", ");
+                    Serial.println(yHigh);
+                }
             }
         }
+    } // TODO: CHECK Bound
+}
+
+void add_obstacles( int alien_map [11][17], int x_low, int x_high, int y_low, int y_high){
+    int scale_in_x_axis = x_high - x_low + 1;
+    int scale_in_y_axis = y_high - y_low + 1;
+    
+    for (int i = 0; i < scale_in_y_axis; i++){
+       for (int g = 0; g < scale_in_x_axis; g++){
+            if((0<= x_low + g < xBound)  &&  (0 <= y_low + i < yBound)){
+                alien_map [x_low + g] [y_low + i] = 900;
+            }
+       }
+                        
     }
-    // TODO: CHECK Bound
 }
 
 //------------------------------------
@@ -1365,3 +1704,5 @@ void rotate_translate_drive_command(int relative_movement){ // :: Astar
         Serial.println("Rotate left by 90 degree done");
     }
 }
+
+

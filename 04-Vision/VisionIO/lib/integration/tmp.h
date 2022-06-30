@@ -50,6 +50,8 @@
 
 // void battery_low_return();
 
+// std::pair<int,int> returnCurrentPosition();
+
 // // Vision
 
 // bool fpga_loop(std::map<std::string, std::vector<double>> &colour_map, bool start_detection);
@@ -63,8 +65,9 @@
 // void listen_map_alien(std::vector<int> rover_position, int map[11][17], std::map<std::string, std::vector<double>> &alien_storage, std::vector<std::string> wrong_detect_alien, int current_car_altitude, bool start_detection);
 
 // //A-star
+// void add_obstacles( int alien_map [11][17], int x_low, int x_high, int y_low, int y_high);
 
-// void move_to_dest(volatile int initial_car_altitude, Pair initial_position, Pair destination);
+// void move_to_dest(int initial_car_altitude, Pair initial_position, Pair destination);
 
 // void aStar(void * param);
 
