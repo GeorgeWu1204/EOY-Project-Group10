@@ -1,0 +1,297 @@
+
+.section{
+    width:80%;
+    height:400px;
+    display:flex;
+    justify-content: space-around;
+    align-items: center;
+    padding:0 20px;
+    box-sizing: border-box;
+    background-color:rgba(255,255,255,0.6);
+    position: absolute;
+    top: 25%;
+    left: 12%;
+    margin-top: -50px;
+    margin-left: -50px;
+    border-radius: 10px;
+    border-radius: 10px 15px 15px 10px;
+}
+.bg{
+    height:800px; 
+}
+/* .text1{
+    font-weight: 700;
+} */
+
+.sectionleft_nav{
+
+    width:calc(60% - 220px);
+    /* width:1000px; */
+    /* width:400px; */
+    height:400px;
+    display:flex;
+    flex-direction: column;
+    justify-content: space-around;
+    /* align-items: center; */
+    margin-right: 10px;
+    margin-left: 0px; 
+}
+
+.sectionleft_nav .heading{
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    padding-top: 5px;
+}
+
+.sectionleft_nav .subheading{
+    font-size: large;
+    font-weight: 700;
+    line-height: 1;
+    padding-top: 5px;
+    /* width:188px; */
+    width:205x
+}
+
+.sectionleft_nav .submitedinfo{
+    margin: 0px;
+    font-weight: 550;
+}
+
+/*  ---------------------------------------  */
+
+.sectioncenter{
+    width:608px;
+    height:400px;
+    position:relative;
+    /* margin:10px; */
+}
+.sectioncenter .map{
+    width:608px;
+    height:400px;
+}
+
+.sectioncenter .rover{
+    width:20px;
+    height:25px;
+    position:absolute; 
+    /* top:97%;
+    left:-1.5%; */
+    top:89.7%;
+    left:3.5%;
+
+    color: white;
+}
+
+.sectioncenter .pathline{
+    position:absolute;
+    top:7.2%;
+    left:5%;
+    width: 200%;
+    height:400%;
+    
+    /* margin-top:-10px;
+    margin-top:-10px; */
+}
+
+.sectioncenter .planned_pathline{
+    position:absolute;
+    /* top:-1%;
+    left:-10.6%; */
+    top:6%;
+    left:-5.5%;
+
+}
+
+.sectioncenter .alien_map{
+    list-style-type: none; /* Remove bullets */
+    padding: 0; /* Remove padding */
+    margin: 0; /* Remove margins */
+    
+}
+
+.sectioncenter .alien{
+    width:20px;
+    height:20px;
+    position: absolute;
+    /* top:97%;
+    left:-1.5%; */
+    top:90.3%;
+    left:3.4%;
+}
+
+.sectioncenter .towermap{
+    list-style-type: none; /* Remove bullets */
+    position:absolute;
+    width:200%;
+    height:100%;
+    /* background-color: aquamarine; */
+}
+
+.sectioncenter .tower{
+    width:25px;
+    height:30px;
+    position:absolute;
+    /* top:96%;
+    left:-1%; */
+    top:88.9%;
+    left:1.4%;
+}
+
+
+
+/*  ---------------------------------------  */
+
+.sectionright{
+    display:flex;
+    position: relative;
+    /* height:90%; */
+    /* width:40%; */
+    /* position: absolute; */
+    height:400px;
+    /* width:100px; */
+    width:calc(60% - 220px);
+    margin-left:19px
+}
+
+.sectionright .batterytitle{
+    font-size: large;
+    font-weight: 700;
+    line-height:1;
+    
+}
+.sectionright .battery{
+    display:flex;
+    position: relative;
+    top:4%;
+    right:80%;
+   
+}
+
+.sectionright .battery_num{
+    display:flex;
+    position: relative;
+    /* width:80%; */
+    top:8%;
+    left: -49%;
+    color:rgb(0,102,0);
+}
+
+
+.sectionright .rectangle{
+    margin-left:-100px;
+}
+
+.sectionright .status_section{
+    width: 20px;
+    position: relative;
+    left: -85%;
+    top: 20%;
+}
+
+.sectionright .status_navigation{
+    font-size: large;
+    font-weight: 700;
+    line-height: 1;
+    position: relative;
+    left: 0%;
+    top: 0%;
+    height: 20px;
+
+    
+}
+
+.sectionright .status_info{
+    display:flex;
+    position: relative;
+    /* width:80%; */
+    top: 0%;
+    left: 80%;
+    height: 20px;
+    font-size: 14px;
+    font-weight: 550;
+    
+}
+
+.sectionright .delay_section{
+    width: 1px;
+    position: relative;    top: 34%;
+}
+
+.sectionright .delay{
+    display: flex;
+    font-size: large;
+    font-weight: 700;
+    line-height:1;
+    position: relative;
+    left: -100%;
+    top: 0%;
+    height: 20px;
+}
+
+.sectionright .delay_info{
+    display:flex;
+    position: relative;
+    /* width:80%; */
+    top: 0%;
+    left: 1800%;
+    height: 20px;
+    width:200px;
+    
+}
+
+.sectionright .tower_section{
+    width: 20px;
+    position: relative;
+    left: -85%;
+    top: 20%;
+}
+
+.sectionright .tower{
+    display: flex;
+    font-size: large;
+    font-weight: 700;
+    line-height:1;
+    position: relative;
+    left: 0%;
+    top: 0%;
+    height: 20px;
+}
+
+.sectionright .tower_info{
+    display:flex;
+    position: relative;
+    /* width:80%; */
+    top: 0%;
+    left: 4%;
+    height: 20px;
+    width:200px;
+}
+
+.sectionright .nav_alien_title{
+    font-size: large;
+    font-weight: 700;
+    line-height:1;
+    position: relative;
+    /* left:-70%; */
+    left: -83%;
+    /* top:35%; */
+    height: 30px;
+}
+
+.sectionright .nav_alien_details{
+    position: relative;
+    /* top: 35%; */
+    left: -61%;
+}
+
+.sectionright .nav_alien_info{
+    font-size: 14px;
+    font-weight: 550;
+    list-style-type: none; /* Remove bullets */
+    padding: 0; /* Remove padding */
+    margin: 0; /* Remove margins */
+    margin-right: -500px;
+    width: 300px;
+}
+

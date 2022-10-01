@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <body>
+    <h2>Enter a number to test if it is Prime</h2>
+    <div id="demo">0</div>
+    <div id="demo2">0</div>
+
+    <input type="button" value="Start!" onclick="start()">
+    <input type="button" value="stop" onclick="closeConnection(processID)">
+    <br>
+    <input type="button" value="Start2!" onclick="start2()">
+    <input type="button" value="stop2" onclick="closeConnection2(processID2)">
+
+    <br>
+
+    <form action="/primality-test" method="post" id="form1">
+        <!-- this is a comment: br tag is for line break-->
+        <label for="num1">Input number:</label><br>
+        <input type="text" id="num1" name="num1"><br>
+        <input type="submit" value="Check!">
+    </form>
+    <p id="response"></p>
+    <script type="text/javascript" src="webapp.js"></script>
+    </body>
+</html>

@@ -1,0 +1,117 @@
+
+.sectionbutton{
+    position: relative;
+    top:-30%;
+    left:4%;
+    margin-right: -10%;
+}
+
+.radar_status_section{
+    width: 20px;
+    position: relative;
+    left: 80%;
+    top: -28%;
+    
+}
+
+.radar_status_navigation{
+    font-size: large;
+    font-weight: 700;
+    line-height: 1;
+    position: relative;
+    left: 0%;
+    top: 0%;
+    height: 20px;
+    
+}
+
+.radar_status_info{
+    display:flex;
+    position: relative;
+    /* width:80%; */
+    top: 0%;
+    left: 80%;
+    height: 20px;
+    font-size: 14px;
+    font-weight: 550;
+    
+}
+
+.sectiontrack{
+    position: relative;
+    top:10%;
+    left: -2%;
+    width:1000px;
+    height:200px;
+}
+
+.sectiontrack .radarpath{
+    position:absolute;
+    top:2.5%;
+    left:2.4%;
+    width: 300%;
+    height:400%;
+    
+    /* margin-top:-10px;
+    margin-top:-10px; */
+}
+
+.sectiontrack .roverradar{
+    width:30px;
+    height:40px;
+    position:absolute; 
+    /* top:97%;
+    left:-1.5%; */
+    top:40.5%;
+    left:1%;
+
+    color: white;
+}
+
+.sectiontrack .track{
+    width:1000px;
+    height:200px;
+}
+
+.sectiontrack .radar_map {
+    isolation: isolate; /* Without isolation, the background color will be taken into account */
+    position: relative;
+    list-style-type: none; /* Remove bullets */
+    padding: 0; /* Remove padding */
+    margin: 0; /* Remove margins */
+    top: -150%;
+    left: 2%;
+}
+
+.circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    mix-blend-mode: screen;
+    position: absolute;
+}
+  
+.circle-yellow {
+    background: rgba(251, 255, 0, 0.417);
+    left: -34px;
+    top: 365px;
+    mix-blend-mode: luminosity;
+    border: none;
+}
+
+.circle-orange {
+    background: rgba(255, 128, 0, 0.417);
+    left: -34px;
+    top: 365px;
+    mix-blend-mode: luminosity;
+    border: none;
+}
+
+.circle-red {
+    background: rgba(255, 0, 0, 0.417);
+    left: -34px;
+    top: 365px;
+    mix-blend-mode: luminosity;
+    border: none;
+}
+

@@ -1,0 +1,115 @@
+
+
+.section .histtitle{
+   position:relative;
+   top:0.7%;
+}
+
+.gethist{
+    padding-left: 1%;
+    padding-right: 1%;
+    margin-top: 0%;
+    background-color: #5d8aa8a1;
+    font-size: 15px;
+    font-weight: 600;
+    position:absolute;
+    left:4.5%;
+    top:15px;
+    height:10%;
+    width:140px;
+}
+
+
+
+.histlist{
+    box-sizing: border-box;
+    cursor:pointer;
+}
+
+.histactive{
+    padding: 3%;
+    margin-top: 10%;
+    background-color:rgba(173, 216, 230, 0.479);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.section .histbuttons{
+    list-style-type: none; /* Remove bullets */
+    padding: 0; /* Remove padding */
+    margin: 0; /* Remove margins */
+    position: relative;
+    top: 5%;
+    left: 7%;
+}
+
+.histbutton{
+    padding: 3%;
+    margin-top: 10%;
+    background-color: #878787;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.sectionright{
+    display:flex;
+    position: relative;
+    height:90%;
+    width:40%;
+}
+
+/* .section .alientitle{
+    position:relative;
+    top:-2.7%;
+ } */
+ 
+.sectionright .alien_info{
+    font-size: 14px;
+    font-weight: 550;
+    list-style-type: none; /* Remove bullets */
+    padding: 0; /* Remove padding */
+    margin: 0; /* Remove margins */
+    margin-right: -500px;
+   
+}
+
+.sectionright .alien_details{
+    position: relative;
+    top: 0%;
+    left:0%;
+}
+
+.sectionright .detailed_tower{
+    position:relative;
+    bottom:-50%;
+    font-size:14px;
+    font-weight:550;
+    left: -36%;
+    margin-right: -500px;
+    /* margin-bottom: -6px; */
+    height:40px;
+}
+
+.sectionright .detailed_time{
+    position:relative;
+    bottom:-80%;
+    font-size:14px;
+    font-weight:550;
+    left: 155%;
+    margin-right: -500px;
+    /* margin-bottom: -6px; */
+    height:40px;
+}
+p {margin-top:-15px;}
+
+.sectioncenter .hist_planned_pathline{
+    position:absolute;
+    top:7.2%;
+    left:5%;
+    width: 200%;
+    height:400%;
+
+    /* margin-top:-10px;
+    margin-top:-10px; */
+}
