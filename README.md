@@ -1,10 +1,10 @@
 # EOY-Project
 
-This repository contains the code for the complete Mars Rover project, including both server side and rover side. It is produced as the Engineering Design Project (ELEC50008). 
+:star: This repository is the Mars Rover project, which is the 2nd Year end-of-year project for Imperial College London EIE department. It is produced as the Engineering Design Project (ELEC50008). 
 
 The Project was divided into 7 modules and was built separately. The detailed code for each module is placed within the folder starting with "0x-".
 
-This Project scored 78.85% overall
+This Project scores 78.85% overall and is awarded blahblah
 
 # To run the code
 
